@@ -8,7 +8,6 @@ import javafx.stage.Stage;
 
 /**
  * 專案編譯/運行指南:
- *
  * 1. 確保已正確設定 JavaFX SDK 路徑 (--module-path) 和模組 (--add-modules).
  * 2. 如果使用 IntelliJ, 建議建立一個 Application 運行配置.
  * 3. VM 選項參考 (請將 PATH_TO_FX 替換為你的實際 JavaFX lib 路徑):

@@ -8,9 +8,30 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+
+
 public class LinkedListBoss extends GameObject {
+    // 新增：用來記錄玩家的 Y 座標
+    private final int maxHp = 50;
+    private int bossHp = maxHp;
+
+    // --- 新增：隨機竄動控制變數 ---
+    private double randomTargetX = 400; // 蟲蟲當前想去的隨機 X 座標
+    private double speedX = 3.0;        // 當前的橫向移動速度 (會忽快忽慢)
+    private long lastChangeTime = 0;    // 上次改變主意的時間
+
+    private long lastGrowTime = 0;
+    private static final long GROW_INTERVAL = 10_000_000_000L; // 10秒 = 100億奈秒
+
+    // 記錄玩家的目標座標
+    private double targetY;
+    private double targetX; // 新增這行
+
+    public void setTargetY(double y) { this.targetY = y; }
+    public void setTargetX(double x) { this.targetX = x; } // 新增這個 Setter
+
     private static final int NUM_NODES = 10;
-    private static final double SPEED = 3.0;
+    private static final double SPEED = 2;
     private final List<BossNode> nodes = new ArrayList<>();
 
     // 座標緩衝 (Position Buffer)：核心移動算法
@@ -19,8 +40,6 @@ public class LinkedListBoss extends GameObject {
     // 每個身體節點讀取緩衝中落後於 Head 的幀數.
     // 依序遞增以產生平滑擺動.
     private static final int BUFFER_OFFSET = 6;
-
-    private int bossHp = 50; // 總血量 (只有 Head 受傷)
 
     public LinkedListBoss(double x, double y) {
         super(x, y, 0, 0); // 本身尺寸為0，完全依賴節點
@@ -34,12 +53,62 @@ public class LinkedListBoss extends GameObject {
         }
     }
 
+    // 新增：讓蟲蟲長大一節的方法
+    private void grow() {
+        // 取得目前的尾巴節點
+        BossNode tail = nodes.get(nodes.size() - 1);
+
+        // 建立新節點，初始位置和當前的尾巴重疊 (如果你之前是用 setX/setY，這裡請改成 tail.getX(), tail.getY())
+        BossNode newNode = new BossNode(tail.x, tail.y, false);
+
+        // 將新節點掛載到 Linked List 的最後面
+        nodes.add(newNode);
+
+        System.out.println("[DEBUG] Linked List 發生動態配置！目前長度：" + nodes.size());
+    }
+
     @Override
     public void update(long now) {
-        // --- 1. 頭部自動移動 ---
-        double sinVal = Math.sin(now * 0.00000001); // 簡單的波浪運動
-        x = 400 + 200 * sinVal; // 在 X 軸上擺動
-        y += SPEED * 0.2; // 緩慢向下
+        if (!isAlive) return;
+
+        // --- 計時器與動態增長邏輯 (保持不變) ---
+        if (lastGrowTime == 0) lastGrowTime = now;
+        if (now - lastGrowTime > GROW_INTERVAL) {
+            grow();
+            lastGrowTime = now;
+        }
+
+        // --- 1. 不規則的隨機 X 軸竄動 ---
+        if (lastChangeTime == 0) lastChangeTime = now;
+
+        // 觸發條件：如果已經到達隨機目標點，或者過了1秒且觸發30%的機率(模擬蟲子突然改變主意)
+        if (Math.abs(x - randomTargetX) < speedX || (now - lastChangeTime > 1_000_000_000L && Math.random() > 0.7)) {
+
+            double canvasWidth = 771;
+            double nodeWidth = 20;
+
+            // 在畫布範圍內，隨機挑選一個新的 X 座標作為目標
+            randomTargetX = Math.random() * (canvasWidth - nodeWidth);
+
+            // 隨機改變移動速度 (模擬忽快忽慢的暴衝，速度介於 2.0 到 8.0 之間)
+            speedX = 2.0 + Math.random() * 6.0;
+
+            lastChangeTime = now; // 重置改變主意的時間
+        }
+
+        // 朝著隨機目標點移動
+        if (x < randomTargetX) {
+            x += speedX;
+        } else if (x > randomTargetX) {
+            x -= speedX;
+        }
+
+        // --- 2. Y 軸跟蹤玩家 (保持不變) ---
+        if (y < targetY) {
+            y += SPEED * 0.3;
+        } else if (y > targetY) {
+            y -= SPEED * 0.3;
+        }
 
         // 更新 Head Node 的實體座標
         nodes.get(0).x = x;
@@ -95,22 +164,33 @@ public class LinkedListBoss extends GameObject {
     }
 
     // 碰撞偵測子彈 hit 判定：只對 Head 節點有效
-    public void hit(GameObject bullet) {
-        if (!isAlive || bossHp <= 0) return;
+    public boolean hit(GameObject bullet) {
+        if (!isAlive || bossHp <= 0) return false;
 
         BossNode headNode = nodes.get(0);
         if (headNode.collidesWith(bullet)) {
-            // Head 受傷，總血量減少
             bossHp--;
             bullet.setAlive(false); // 子彈銷毀
 
             if (bossHp <= 0) {
-                // BOSS 毀滅，蟲體逐一引爆 (Demo 省略動畫，直接銷毀)
                 isAlive = false;
-                System.out.println("DEBUG: LinkedList Boss destroyed!");
-            } else {
-                System.out.println("DEBUG: Boss Head hit! HP: " + bossHp);
+                return true; // 回傳 true，代表造成擊殺
             }
         }
+        return false; // 只是擊中，還沒死
     }
+    public boolean isHittingPlayer(GameObject player) {
+        if (!isAlive) return false;
+
+        // 檢查玩家是否碰到蟲蟲的「任何一個節點」
+        for (BossNode node : nodes) {
+            if (node.collidesWith(player)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    public int getBossHp() { return bossHp; }
+    public int getMaxHp() { return maxHp; }
 }
+

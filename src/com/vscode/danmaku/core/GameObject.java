@@ -6,7 +6,7 @@ import javafx.scene.canvas.GraphicsContext;
  * 遊戲中所有動態物件的基礎類別.
  */
 public abstract class GameObject {
-    protected double x, y;
+    public double x, y;
     protected double width, height;
     protected boolean isAlive;
 
