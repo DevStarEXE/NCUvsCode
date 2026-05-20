@@ -15,6 +15,9 @@ public class LinkedListBoss extends GameObject {
     private final int maxHp = 50;
     private int bossHp = maxHp;
 
+    private boolean isGameOver = false;
+    private boolean isVictory = false;
+
     // --- 新增：隨機竄動控制變數 ---
     private double randomTargetX = 400; // 蟲蟲當前想去的隨機 X 座標
     private double speedX = 3.0;        // 當前的橫向移動速度 (會忽快忽慢)

@@ -7,7 +7,7 @@ import javafx.scene.canvas.GraphicsContext;
  */
 public abstract class GameObject {
     public double x, y;
-    protected double width, height;
+    public double width, height;
     protected boolean isAlive;
 
     public GameObject(double x, double y, double width, double height) {

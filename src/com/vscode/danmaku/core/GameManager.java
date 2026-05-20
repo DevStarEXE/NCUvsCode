@@ -8,10 +8,19 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
+import java.io.IOException;
+import javafx.scene.input.KeyCode;
+
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class GameManager {
+    private boolean isGameOver = false;
+    private boolean isVictory = false;
     private int score = 0; // 新增分數變數
     private final Canvas gameCanvas;
     private final GraphicsContext gc;
@@ -48,6 +57,7 @@ public class GameManager {
     public void stop() { gameLoop.stop(); }
 
     private void update(long now) {
+        if (isGameOver || isVictory) return; // 如果遊戲結束，停止所有物件移動與更新
         // 取得視窗邊界
         double cw = gameCanvas.getWidth();
         double ch = gameCanvas.getHeight();
@@ -77,25 +87,23 @@ public class GameManager {
         boss.setTargetY(player.y);
         boss.update(now);
 
-        // 4. 碰撞偵測 (子彈 vs BOSS) 與【分數系統】
+        // 4. 碰撞偵測 (子彈 vs BOSS)
         for (Bullet b : playerBullets) {
             if (b.isAlive()) {
                 boolean killedBoss = boss.hit(b);
                 if (killedBoss) {
-                    score += 1000; // 擊殺 BOSS 獲得 1000 分
-                    System.out.println("BOSS 擊破！分數 +1000");
+                    score += 1000;
+                    isVictory = true; // --- 觸發勝利 ---
                 } else if (!b.isAlive()) {
-                    score += 10;   // 成功命中但未擊殺獲得 10 分
+                    score += 10;
                 }
             }
         }
 
-        // 5. 碰撞偵測 (BOSS vs 玩家) -> Game Over
+        // 5. 碰撞偵測 (BOSS vs 玩家)
         if (boss.isHittingPlayer(player)) {
             player.setAlive(false);
-            System.out.println("====== GAME OVER ======");
-            stop(); // 停止遊戲
-            return;
+            isGameOver = true; // --- 觸發失敗 ---
         }
 
         // 6. 清理已銷毀物件 (包含打中敵人的、飛出畫面的子彈)
@@ -153,6 +161,31 @@ public class GameManager {
         gc.setFill(Color.LIGHTGRAY);
         gc.setFont(new Font("Monospaced", 18));
         gc.fillText("SCORE: " + String.format("%05d", score), 20, 30);
+
+        // --- 繪製結算畫面與返回提示 ---
+        if (isGameOver || isVictory) {
+            // 畫一個半透明的黑色遮罩，讓背景變暗
+            gc.setFill(Color.web("#000000", 0.7));
+            gc.fillRect(0, 0, gameCanvas.getWidth(), gameCanvas.getHeight());
+
+            gc.setFont(new Font("Monospaced", 60));
+            double centerX = gameCanvas.getWidth() / 2;
+            double centerY = gameCanvas.getHeight() / 2;
+
+            if (isVictory) {
+                gc.setFill(Color.web("#4CAF50")); // 勝利綠色
+                gc.fillText("V I C T O R Y", centerX - 190, centerY - 20);
+            } else if (isGameOver) {
+                gc.setFill(Color.web("#F44336")); // 失敗紅色
+                gc.fillText("G A M E  O V E R", centerX - 220, centerY - 20);
+            }
+
+            // 提示字樣
+            gc.setFill(Color.WHITE);
+            gc.setFont(new Font("Monospaced", 20));
+            gc.fillText("Press [ESC] to Return Title", centerX - 150, centerY + 50);
+            gc.fillText("Final Score: " + score, centerX - 90, centerY + 90);
+        }
     }
 
     // 鍵盤控制橋接方法 (由控制器呼叫)
@@ -163,6 +196,9 @@ public class GameManager {
             case LEFT -> player.setKeyPressed("LEFT", true);
             case RIGHT -> player.setKeyPressed("RIGHT", true);
             case SPACE -> setSpacePressed(true);
+        }
+        if (event.getCode() == KeyCode.ESCAPE && (isGameOver || isVictory)) {
+            returnToMenu();
         }
     }
 
@@ -180,4 +216,28 @@ public class GameManager {
     private boolean spacePressed = false;
     public boolean isSpacePressed() { return spacePressed; }
     public void setSpacePressed(boolean spacePressed) { this.spacePressed = spacePressed; }
+
+    private void returnToMenu() {
+        try {
+            // 1. 停止遊戲的 AnimationTimer
+            stop();
+
+            // 2. 取得目前的視窗 (Stage)
+            Stage stage = (Stage) gameCanvas.getScene().getWindow();
+
+            // 3. 重新載入主選單的 FXML
+            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/resource/fxml/menu-view.fxml"));
+            Scene menuScene = new Scene(fxmlLoader.load(), 800, 600);
+
+            // 4. 切換場景
+            stage.setScene(menuScene);
+            stage.setTitle("遊戲主選單");
+
+            System.out.println("已返回主選單");
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("返回主選單失敗！請檢查路徑。");
+        }
+    }
+
 }
