@@ -1,0 +1,21 @@
+/* VS Code Monokai/Dark+ 主題美學 */
+
+.root {
+    -fx-background-color: #1E1E1E; /* 主背景 */
+}
+
+/* 遊戲畫布邊框 */
+#gameCanvas {
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 0);
+    -fx-border-color: #3E3E42; /* VS Code border grey */
+    -fx-border-width: 2px;
+}
+
+/* 血條介面元素 (預留) */
+.hp-bar {
+    -fx-background-color: #333333;
+    -fx-border-color: #444444;
+}
+.hp-bar-fill {
+    -fx-background-color: #CC2222; /* Warning/Error Red */
+}
