@@ -1,8 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.text.Font?>
 
+<AnchorPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.vscode.menu.LevelController">
+    <children>
+        <ImageView fitHeight="600.0" fitWidth="800.0" pickOnBounds="true" preserveRatio="false" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+            <image>
+                <Image url="@images/Background.jpg" />
+            </image>
+        </ImageView>
 
-<AnchorPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.vscode.menu.LevelController">
+        <Label alignment="CENTER" text="S E L E C T   L E V E L" textFill="WHITE" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="60.0">
+            <font>
+                <Font name="System Bold" size="36.0" />
+            </font>
+        </Label>
 
+        <GridPane alignment="CENTER" hgap="30.0" vgap="30.0" AnchorPane.leftAnchor="100.0" AnchorPane.rightAnchor="100.0" AnchorPane.topAnchor="180.0">
+            <children>
+                <Button mnemonicParsing="false" onAction="#handleLevelSelect" prefHeight="100.0" prefWidth="100.0" style="-fx-font-size: 28; -fx-background-radius: 15; -fx-cursor: hand;" text="1" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                <Button mnemonicParsing="false" onAction="#handleLevelSelect" prefHeight="100.0" prefWidth="100.0" style="-fx-font-size: 28; -fx-background-radius: 15; -fx-cursor: hand;" text="2" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+                <Button mnemonicParsing="false" onAction="#handleLevelSelect" prefHeight="100.0" prefWidth="100.0" style="-fx-font-size: 28; -fx-background-radius: 15; -fx-cursor: hand;" text="3" GridPane.columnIndex="2" GridPane.rowIndex="0" />
+                <Button mnemonicParsing="false" onAction="#handleLevelSelect" prefHeight="100.0" prefWidth="100.0" style="-fx-font-size: 28; -fx-background-radius: 15; -fx-cursor: hand;" text="4" GridPane.columnIndex="3" GridPane.rowIndex="0" />
+
+                <Button mnemonicParsing="false" onAction="#handleBossSelect" prefHeight="100.0" prefWidth="490.0" style="-fx-background-color: #8B0000; -fx-text-fill: white; -fx-font-size: 32; -fx-font-weight: bold; -fx-background-radius: 15; -fx-cursor: hand;" text="☠ LINKED LIST WORM ☠" GridPane.columnIndex="0" GridPane.columnSpan="4" GridPane.rowIndex="1" />
+            </children>
+        </GridPane>
+
+        <Button mnemonicParsing="false" onAction="#handleBackToMenu" prefHeight="40.0" prefWidth="100.0" style="-fx-cursor: hand;" text="&lt; Back" AnchorPane.bottomAnchor="40.0" AnchorPane.leftAnchor="40.0">
+            <font>
+                <Font size="16.0" />
+            </font>
+        </Button>
+    </children>
 </AnchorPane>
