@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.MenuController">
+   <children>
+      <ImageView fitHeight="600.0" fitWidth="800.0" pickOnBounds="true" preserveRatio="false" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+         <image>
+            <Image url="@images/Background.jpg" />
+         </image>
+      </ImageView>
+
+      <VBox alignment="TOP_CENTER" layoutX="150.0" layoutY="45.0" prefWidth="500.0" AnchorPane.topAnchor="50.0">
+         <children>
+            <ImageView fitHeight="120.0" fitWidth="450.0" pickOnBounds="true" preserveRatio="true">
+               <image>
+                  <Image url="@images/title.jpg" />
+               </image>
+            </ImageView>
+         </children>
+      </VBox>
+
+      <VBox alignment="CENTER" layoutX="300.0" layoutY="220.0" prefWidth="200.0" spacing="20.0" AnchorPane.bottomAnchor="80.0" AnchorPane.leftAnchor="280.0" AnchorPane.rightAnchor="280.0" AnchorPane.topAnchor="220.0">
+         <children>
+
+            <Button fx:id="btnStart" mnemonicParsing="false" onAction="#handleStartGame" prefHeight="50.0" prefWidth="180.0" style="-fx-background-radius: 10; -fx-cursor: hand;" text="Start">
+               <font>
+                  <Font name="System Bold" size="20.0" />
+               </font>
+            </Button>
+
+            <Button fx:id="btnSetting" mnemonicParsing="false" onAction="#handleGoToSetting" prefHeight="50.0" prefWidth="180.0" style="-fx-background-radius: 10; -fx-cursor: hand;" text="Setting">
+               <font>
+                  <Font name="System Bold" size="20.0" />
+               </font>
+            </Button>
+
+            <Button fx:id="btnExit" mnemonicParsing="false" onAction="#handleExitGame" prefHeight="50.0" prefWidth="180.0" style="-fx-background-radius: 10; -fx-cursor: hand;" text="Exit">
+               <font>
+                  <Font name="System Bold" size="20.0" />
+               </font>
+            </Button>
+
+         </children>
+         <padding>
+            <Insets bottom="10.0" top="10.0" />
+         </padding>
+      </VBox>
+   </children>
+</AnchorPane>
