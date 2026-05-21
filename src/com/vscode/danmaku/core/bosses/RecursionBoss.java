@@ -14,8 +14,8 @@ public class RecursionBoss {
     public double x = 370, y = 100;
     public double width = 80, height = 80;
 
-    private int hp = 200;
-    private int maxHp = 200;
+    private final int maxHp = (int)(300 * com.vscode.danmaku.core.GameManager.difficultyMultiplier);
+    private int hp = maxHp;
     private boolean isAlive = true;
 
     private double vx = 3.0;

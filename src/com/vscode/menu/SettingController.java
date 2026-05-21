@@ -6,6 +6,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Slider;
 import javafx.stage.Stage;
 import java.io.IOException;
@@ -17,6 +18,9 @@ public class SettingController {
 
     @FXML
     private Slider sliderSound;
+    
+    @FXML
+    private ComboBox<String> comboDifficulty;
 
     @FXML
     private Button btnBack;
@@ -27,6 +31,23 @@ public class SettingController {
         SoundManager soundManager = SoundManager.getInstance();
         sliderMusic.valueProperty().bindBidirectional(soundManager.musicVolumeProperty());
         sliderSound.valueProperty().bindBidirectional(soundManager.soundVolumeProperty());
+        
+        comboDifficulty.getItems().addAll("EASY (0.5x HP)", "NORMAL (1x HP)", "HARD (2x HP)");
+        if (com.vscode.danmaku.core.GameManager.difficultyMultiplier == 0.5) {
+            comboDifficulty.getSelectionModel().select(0);
+        } else if (com.vscode.danmaku.core.GameManager.difficultyMultiplier == 2.0) {
+            comboDifficulty.getSelectionModel().select(2);
+        } else {
+            comboDifficulty.getSelectionModel().select(1);
+        }
+        
+        comboDifficulty.setOnAction(e -> {
+            int index = comboDifficulty.getSelectionModel().getSelectedIndex();
+            if (index == 0) com.vscode.danmaku.core.GameManager.difficultyMultiplier = 0.5;
+            else if (index == 2) com.vscode.danmaku.core.GameManager.difficultyMultiplier = 2.0;
+            else com.vscode.danmaku.core.GameManager.difficultyMultiplier = 1.0;
+            System.out.println("難度已變更為: " + com.vscode.danmaku.core.GameManager.difficultyMultiplier);
+        });
     }
 
     @FXML

@@ -32,6 +32,7 @@ public class GameManager {
     private AnimationTimer gameLoop;
 
     public static String selectedLevel = "BOSS";
+    public static double difficultyMultiplier = 1.0;
 
     // level enemy
     private LinkedListBoss linkedListBoss;
@@ -361,19 +362,19 @@ public class GameManager {
             double hpRatio;
             int currentHp, maxHp, percent;
             if (forLoopBoss.isKAlive()) {
-                currentHp = forLoopBoss.getHpK(); maxHp = 100;
+                currentHp = forLoopBoss.getHpK(); maxHp = forLoopBoss.getMaxHpK();
                 hpRatio = (double) currentHp / maxHp; percent = (int)(hpRatio * 100);
                 gc.setFill(Color.web("#FF00FF"));
                 gc.fillRect(barX, barY, barWidth * hpRatio, barHeight);
                 gc.fillText(String.format("[COMPILING] NESTED_LOOP: Layer_K (Shielding)  %d/%d  %d%%", currentHp, maxHp, percent), barX, barY - 8);
             } else if (forLoopBoss.isJAlive()) {
-                currentHp = forLoopBoss.getHpJ(); maxHp = 100;
+                currentHp = forLoopBoss.getHpJ(); maxHp = forLoopBoss.getMaxHpJ();
                 hpRatio = (double) currentHp / maxHp; percent = (int)(hpRatio * 100);
                 gc.setFill(Color.web("#00FFFF"));
                 gc.fillRect(barX, barY, barWidth * hpRatio, barHeight);
                 gc.fillText(String.format("[COMPILING] NESTED_LOOP: Layer_J (Warning)  %d/%d  %d%%", currentHp, maxHp, percent), barX, barY - 8);
             } else {
-                currentHp = forLoopBoss.getHpI(); maxHp = 150;
+                currentHp = forLoopBoss.getHpI(); maxHp = forLoopBoss.getMaxHpI();
                 hpRatio = (double) currentHp / maxHp; percent = (int)(hpRatio * 100);
                 gc.setFill(Color.web("#FF3333"));
                 gc.fillRect(barX, barY, barWidth * hpRatio, barHeight);

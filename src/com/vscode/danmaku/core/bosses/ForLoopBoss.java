@@ -11,10 +11,14 @@ public class ForLoopBoss {
     public double x = 370, y = 120;
     public double width = 60, height = 60;
 
-    // 三層獨立血量
-    private int hpK = 0; // 最外層 k
-    private int hpJ = 10; // 中間層 j
-    private int hpI = 150; // 最內層 i (核心)
+    // 三層獨立血量 (總和 300)
+    private final int maxHpK = (int)(100 * com.vscode.danmaku.core.GameManager.difficultyMultiplier); // 最外層 k
+    private final int maxHpJ = (int)(100 * com.vscode.danmaku.core.GameManager.difficultyMultiplier); // 中間層 j
+    private final int maxHpI = (int)(100 * com.vscode.danmaku.core.GameManager.difficultyMultiplier); // 最內層 i (核心)
+
+    private int hpK = maxHpK; 
+    private int hpJ = maxHpJ; 
+    private int hpI = maxHpI; 
 
     private boolean kAlive = true;
     private boolean jAlive = true;
@@ -304,4 +308,7 @@ public class ForLoopBoss {
     public int getHpI() { return hpI; }
     public int getHpJ() { return hpJ; }
     public int getHpK() { return hpK; }
+    public int getMaxHpI() { return maxHpI; }
+    public int getMaxHpJ() { return maxHpJ; }
+    public int getMaxHpK() { return maxHpK; }
 }
