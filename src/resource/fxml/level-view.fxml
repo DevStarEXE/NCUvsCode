@@ -5,8 +5,8 @@
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.text.Font?>
 
@@ -18,7 +18,7 @@
             </image>
         </ImageView>
 
-        <Label alignment="CENTER" text="S E L E C T   L E V E L" textFill="WHITE" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="60.0">
+        <Label alignment="CENTER" text="S E L E C T   L E V E L" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="60.0">
             <font>
                 <Font name="System Bold" size="36.0" />
             </font>
@@ -26,17 +26,23 @@
 
         <GridPane alignment="CENTER" hgap="30.0" vgap="30.0" AnchorPane.leftAnchor="100.0" AnchorPane.rightAnchor="100.0" AnchorPane.topAnchor="180.0">
             <children>
-                <Button mnemonicParsing="false" onAction="#handleLevelSelect"
-                        prefHeight="100.0" prefWidth="100.0"
-                        style="-fx-background-color: #4B0082; -fx-text-fill: white; -fx-font-size: 16; -fx-font-weight: bold; -fx-background-radius: 15; -fx-cursor: hand;"
-                        text="FOR LOOP"
-                        GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                <Button mnemonicParsing="false" onAction="#handleLevelSelect" prefHeight="100.0" prefWidth="100.0" style="-fx-background-color: #4B0082; -fx-text-fill: white; -fx-font-size: 16; -fx-font-weight: bold; -fx-background-radius: 15; -fx-cursor: hand;" text="FOR LOOP" GridPane.columnIndex="0" GridPane.rowIndex="0" />
                 <Button mnemonicParsing="false" onAction="#handleLevelSelect" prefHeight="100.0" prefWidth="100.0" style="-fx-font-size: 28; -fx-background-radius: 15; -fx-cursor: hand;" text="2" GridPane.columnIndex="1" GridPane.rowIndex="0" />
                 <Button mnemonicParsing="false" onAction="#handleLevelSelect" prefHeight="100.0" prefWidth="100.0" style="-fx-font-size: 28; -fx-background-radius: 15; -fx-cursor: hand;" text="3" GridPane.columnIndex="2" GridPane.rowIndex="0" />
                 <Button mnemonicParsing="false" onAction="#handleLevelSelect" prefHeight="100.0" prefWidth="100.0" style="-fx-font-size: 28; -fx-background-radius: 15; -fx-cursor: hand;" text="4" GridPane.columnIndex="3" GridPane.rowIndex="0" />
 
                 <Button mnemonicParsing="false" onAction="#handleBossSelect" prefHeight="100.0" prefWidth="490.0" style="-fx-background-color: #8B0000; -fx-text-fill: white; -fx-font-size: 32; -fx-font-weight: bold; -fx-background-radius: 15; -fx-cursor: hand;" text="☠ LINKED LIST WORM ☠" GridPane.columnIndex="0" GridPane.columnSpan="4" GridPane.rowIndex="1" />
             </children>
+         <columnConstraints>
+            <ColumnConstraints />
+            <ColumnConstraints />
+            <ColumnConstraints />
+            <ColumnConstraints />
+         </columnConstraints>
+         <rowConstraints>
+            <RowConstraints />
+            <RowConstraints />
+         </rowConstraints>
         </GridPane>
 
         <Button mnemonicParsing="false" onAction="#handleBackToMenu" prefHeight="40.0" prefWidth="100.0" style="-fx-cursor: hand;" text="&lt; Back" AnchorPane.bottomAnchor="40.0" AnchorPane.leftAnchor="40.0">

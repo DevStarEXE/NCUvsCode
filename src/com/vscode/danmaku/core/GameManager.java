@@ -13,6 +13,7 @@ import java.io.IOException;
 import javafx.scene.input.KeyCode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import com.vscode.danmaku.core.bosses.ForLoopBoss;
 import com.vscode.danmaku.core.bosses.LinkedWorm.LinkedListBoss;
@@ -34,14 +35,18 @@ public class GameManager {
     private ForLoopBoss forLoopBoss;
     private final List<EnemyBullet> enemyBullets = new ArrayList<>();
 
+    private boolean isAutoShooting = true;
+
+    private final List<GameItem> itemsOnMap = new ArrayList<>();
+    private long lastItemSpawnTime = 0;
+    private long powerUpEndTime = 0;
+    private final Random random = new Random();
+
     public GameManager(Canvas gameCanvas) {
         this.gameCanvas = gameCanvas;
         this.gc = gameCanvas.getGraphicsContext2D();
-
-        // 初始化玩家位置
         this.player = new Player(380, 500);
 
-        // 初始化遊戲核心引擎迴圈
         this.gameLoop = new AnimationTimer() {
             @Override
             public void handle(long now) {
@@ -72,17 +77,47 @@ public class GameManager {
         double cw = gameCanvas.getWidth();
         double ch = gameCanvas.getHeight();
 
-        // 1. 更新玩家位置與邊界安全限制
         player.update(now);
         if (player.x < 0) player.x = 0;
         if (player.x > cw - player.width) player.x = cw - player.width;
         if (player.y < 0) player.y = 0;
         if (player.y > ch - player.height) player.y = ch - player.height;
 
-        // 2. 【全自動開火機制】不干擾躲避彈幕的手感
-        player.shoot(now, playerBullets);
+        if (powerUpEndTime != 0 && now > powerUpEndTime) {
+            player.setFireMode(0);
+            player.setActiveBuffColor(null);
+            powerUpEndTime = 0;
+        }
 
-        // 3. 更新玩家發射的子彈與效能優化出界銷毀
+        if (lastItemSpawnTime == 0) lastItemSpawnTime = now;
+        if (now - lastItemSpawnTime > 10_000_000_000L) {
+            double rx = 80 + random.nextDouble() * (cw - 160);
+            double ry = 250 + random.nextDouble() * (ch - 400);
+            int rType = random.nextInt(2) + 1;
+            itemsOnMap.add(new GameItem(rx, ry, rType));
+            lastItemSpawnTime = now;
+        }
+
+        for (int i = itemsOnMap.size() - 1; i >= 0; i--) {
+            GameItem item = itemsOnMap.get(i);
+            if (item.collidesWith(player)) {
+                powerUpEndTime = now + 5_000_000_000L;
+                if (item.type == 1) {
+                    player.setFireMode(1);
+                    player.setActiveBuffColor(Color.web("#FFD700"));
+                } else {
+                    player.setFireMode(2);
+                    player.setActiveBuffColor(Color.web("#FF4500"));
+                }
+                itemsOnMap.remove(i);
+                score += 100;
+            }
+        }
+
+        if (isAutoShooting) {
+            player.shoot(now, playerBullets);
+        }
+
         for (Bullet b : playerBullets) {
             b.update(now);
             if (b.y + b.height < 0 || b.y > ch || b.x < 0 || b.x > cw) {
@@ -90,18 +125,17 @@ public class GameManager {
             }
         }
 
-        // 4. 更新動態 BOSS 狀態與判定機制
+        // --- 修改：大幅降低命中充能的速度 ---
         if (forLoopBoss != null && forLoopBoss.isAlive()) {
-            // 傳入 player 的 X, Y，提供核心階段進行精準運算狙擊
             forLoopBoss.update(now, enemyBullets, player.x, player.y);
-
             for (Bullet b : playerBullets) {
                 if (b.isAlive()) {
                     if (forLoopBoss.hit(b)) {
-                        score += 5000; // 破譯三層巢狀迴圈給予高分獎勵！
+                        score += 5000;
                         isVictory = true;
                     } else if (!b.isAlive()) {
                         score += 15;
+                        player.addCharge(5.0); // 原本 20，改為 5 (約需命中 200 發才能滿)
                     }
                 }
             }
@@ -110,7 +144,6 @@ public class GameManager {
             linkedListBoss.setTargetX(player.x);
             linkedListBoss.setTargetY(player.y);
             linkedListBoss.update(now);
-
             for (Bullet b : playerBullets) {
                 if (b.isAlive()) {
                     if (linkedListBoss.hit(b)) {
@@ -118,17 +151,16 @@ public class GameManager {
                         isVictory = true;
                     } else if (!b.isAlive()) {
                         score += 10;
+                        player.addCharge(5.0);
                     }
                 }
             }
-
             if (linkedListBoss.isHittingPlayer(player)) {
                 player.setAlive(false);
                 isGameOver = true;
             }
         }
 
-        // 5. 更新敵方幾何彈幕
         for (EnemyBullet eb : enemyBullets) {
             eb.update();
             if (eb.x < -20 || eb.x > cw + 20 || eb.y < -20 || eb.y > ch + 20) {
@@ -136,7 +168,6 @@ public class GameManager {
             }
         }
 
-        // 6. 敵方彈幕 vs 玩家碰撞判定
         for (EnemyBullet eb : enemyBullets) {
             if (eb.isAlive() && eb.collidesWithPlayer(player.x, player.y, player.width, player.height)) {
                 player.setAlive(false);
@@ -145,42 +176,95 @@ public class GameManager {
             }
         }
 
-        // 7. 記憶體資源清理
         playerBullets.removeIf(b -> !b.isAlive());
         enemyBullets.removeIf(eb -> !eb.isAlive());
     }
 
     private void draw(GraphicsContext gc) {
-        // 暗色調 IDE 開發背景
         gc.setFill(Color.web("#1E1E1E"));
         gc.fillRect(0, 0, gameCanvas.getWidth(), gameCanvas.getHeight());
 
-        // 1. 繪製當前關卡 BOSS 本體
         if (forLoopBoss != null) forLoopBoss.draw(gc);
         if (linkedListBoss != null) linkedListBoss.draw(gc);
 
-        // 2. 頂部動態血條整合 UI
         drawBossHealthBar(gc);
 
-        // 3. 繪製所有子彈與玩家物件
+        for (GameItem item : itemsOnMap) {
+            item.draw(gc);
+        }
+
         for (Bullet b : playerBullets) { b.draw(gc); }
         for (EnemyBullet eb : enemyBullets) { eb.draw(gc); }
         if (player != null && player.isAlive()) { player.draw(gc); }
 
-        // 4. 繪製計分板
         gc.setFill(Color.LIGHTGRAY);
         gc.setFont(new Font("Monospaced", 18));
         gc.fillText("SCORE: " + String.format("%05d", score), 20, 30);
 
-        // 5. 繪製終局結算黑化遮罩
+        // ==========================================
+        // 修改：精簡版的左下角充能 UI (因為上限只有 1)
+        // ==========================================
+        double uiX = 20;
+        double uiY = gameCanvas.getHeight() - 25;
+
+        gc.setStroke(Color.web("#555555"));
+        gc.setLineWidth(1.5);
+        gc.strokeRect(uiX, uiY - 22, 160, 30);
+        gc.setFill(Color.web("#222222"));
+        gc.fillRect(uiX + 1, uiY - 21, 158, 28);
+
+        if (player != null) {
+            int bombs = player.getBombCount();
+            double progress = player.getChargeProgress();
+
+            if (bombs >= player.getMaxBombs()) {
+                // 滿充能 (1次)，直接顯示 READY
+                gc.setFill(Color.web("#FFD700"));
+                gc.fillRect(uiX + 2, uiY - 20, 156, 26);
+
+                gc.setFill(Color.BLACK);
+                gc.setFont(javafx.scene.text.Font.font("Monospaced", javafx.scene.text.FontWeight.BOLD, 12));
+                gc.fillText("[C] BOMB READY!", uiX + 10, uiY - 2);
+            } else {
+                // 充能中 (0次)，顯示藍色條與百分比
+                gc.setFill(Color.web("#007ACC"));
+                gc.fillRect(uiX + 2, uiY - 20, 156 * progress, 26);
+
+                gc.setFill(Color.WHITE);
+                gc.setFont(javafx.scene.text.Font.font("Monospaced", 12));
+                gc.fillText("[C] CHARGING " + (int)(progress * 100) + "%", uiX + 10, uiY - 2);
+            }
+        }
+
+        double modeUiX = gameCanvas.getWidth() - 130;
+        double modeUiY = gameCanvas.getHeight() - 25;
+
+        gc.setFill(Color.web("#888888"));
+        gc.setFont(new Font("Monospaced", 11));
+        gc.fillText("WEAPON_WEAVE:", modeUiX, modeUiY - 2);
+
+        int currentMode = (player != null) ? player.getFireMode() : 0;
+        Color activeDotColor = (player != null && player.getActiveBuffColor() != null)
+                ? player.getActiveBuffColor() : Color.web("#007ACC");
+
+        double dotStartX = modeUiX + 90;
+        double dotY = modeUiY - 10;
+
+        for (int i = 0; i < 3; i++) {
+            if (i == currentMode) {
+                gc.setFill(activeDotColor);
+            } else {
+                gc.setFill(Color.web("#444444"));
+            }
+            gc.fillOval(dotStartX + (i * 12), dotY, 7, 7);
+        }
+
         if (isGameOver || isVictory) {
             gc.setFill(Color.web("#000000", 0.75));
             gc.fillRect(0, 0, gameCanvas.getWidth(), gameCanvas.getHeight());
-
             gc.setFont(new Font("Monospaced", 60));
             double centerX = gameCanvas.getWidth() / 2;
             double centerY = gameCanvas.getHeight() / 2;
-
             if (isVictory) {
                 gc.setFill(Color.web("#4CAF50"));
                 gc.fillText("V I C T O R Y", centerX - 190, centerY - 20);
@@ -188,7 +272,6 @@ public class GameManager {
                 gc.setFill(Color.web("#F44336"));
                 gc.fillText("G A M E  O V E R", centerX - 220, centerY - 20);
             }
-
             gc.setFill(Color.WHITE);
             gc.setFont(new Font("Monospaced", 20));
             gc.fillText("Press [ESC] to Return Title", centerX - 150, centerY + 50);
@@ -196,9 +279,6 @@ public class GameManager {
         }
     }
 
-    /**
-     * 支援多層血量顯示的頂部血條 UI 核心
-     */
     private void drawBossHealthBar(GraphicsContext gc) {
         double barWidth = 400;
         double barHeight = 14;
@@ -206,59 +286,55 @@ public class GameManager {
         double barY = 25;
 
         if (forLoopBoss != null && forLoopBoss.isAlive()) {
-            // 背景底槽
             gc.setFill(Color.web("#333333"));
             gc.fillRect(barX, barY, barWidth, barHeight);
-
-            // 動態依據目前殘留層級填滿血條顏色
             double hpRatio;
+            int currentHp, maxHp, percent;
             if (forLoopBoss.isKAlive()) {
-                hpRatio = (double) forLoopBoss.getHpK() / 100;
-                gc.setFill(Color.web("#FF00FF")); // 外層 K 紫色血條
+                currentHp = forLoopBoss.getHpK(); maxHp = 100;
+                hpRatio = (double) currentHp / maxHp; percent = (int)(hpRatio * 100);
+                gc.setFill(Color.web("#FF00FF"));
                 gc.fillRect(barX, barY, barWidth * hpRatio, barHeight);
-                gc.fillText("[COMPILING] NESTED_LOOP: Layer_K (Shielding)", barX, barY - 8);
+                gc.fillText(String.format("[COMPILING] NESTED_LOOP: Layer_K (Shielding)  %d/%d  %d%%", currentHp, maxHp, percent), barX, barY - 8);
             } else if (forLoopBoss.isJAlive()) {
-                hpRatio = (double) forLoopBoss.getHpJ() / 100;
-                gc.setFill(Color.web("#00FFFF")); // 中層 J 青藍色血條
+                currentHp = forLoopBoss.getHpJ(); maxHp = 100;
+                hpRatio = (double) currentHp / maxHp; percent = (int)(hpRatio * 100);
+                gc.setFill(Color.web("#00FFFF"));
                 gc.fillRect(barX, barY, barWidth * hpRatio, barHeight);
-                gc.fillText("[COMPILING] NESTED_LOOP: Layer_J (Warning)", barX, barY - 8);
+                gc.fillText(String.format("[COMPILING] NESTED_LOOP: Layer_J (Warning)  %d/%d  %d%%", currentHp, maxHp, percent), barX, barY - 8);
             } else {
-                hpRatio = (double) forLoopBoss.getHpI() / 120;
-                gc.setFill(Color.web("#FF3333")); // 核心 I 致命紅血條
+                currentHp = forLoopBoss.getHpI(); maxHp = 150;
+                hpRatio = (double) currentHp / maxHp; percent = (int)(hpRatio * 100);
+                gc.setFill(Color.web("#FF3333"));
                 gc.fillRect(barX, barY, barWidth * hpRatio, barHeight);
-                gc.fillText("[OVERLOAD] NESTED_LOOP: Core_I (Critical)", barX, barY - 8);
+                gc.fillText(String.format("[OVERLOAD] NESTED_LOOP: Core_I (Critical)  %d/%d  %d%%", currentHp, maxHp, percent), barX, barY - 8);
             }
-
             gc.setStroke(Color.web("#888888"));
             gc.strokeRect(barX, barY, barWidth, barHeight);
         }
         else if (linkedListBoss != null && linkedListBoss.isAlive()) {
             gc.setFill(Color.web("#333333"));
             gc.fillRect(barX, barY, barWidth, barHeight);
-
-            double hpRatio = (double) linkedListBoss.getBossHp() / linkedListBoss.getMaxHp();
+            int currentHp = linkedListBoss.getBossHp();
+            int maxHp = linkedListBoss.getMaxHp();
+            double hpRatio = (double) currentHp / maxHp;
+            int percent = (int)(hpRatio * 100);
             gc.setFill(Color.web("#F44336"));
             gc.fillRect(barX, barY, barWidth * hpRatio, barHeight);
-
             gc.setStroke(Color.web("#888888"));
             gc.strokeRect(barX, barY, barWidth, barHeight);
-
             gc.setFill(Color.web("#859900"));
             gc.setFont(new Font("Monospaced", 11));
-            gc.fillText("[PROCESS] BOSS: LINKED_LIST_WORM", barX, barY - 8);
+            gc.fillText(String.format("[PROCESS] BOSS: LINKED_LIST_WORM  %d/%d  %d%%", currentHp, maxHp, percent), barX, barY - 8);
         }
     }
 
     public void handleKeyPressed(KeyEvent event) {
         switch (event.getCode()) {
             case UP -> player.setKeyPressed("UP", true);
-            case W -> player.setKeyPressed("UP", true);
             case DOWN -> player.setKeyPressed("DOWN", true);
-            case S -> player.setKeyPressed("DOWN", true);
             case LEFT -> player.setKeyPressed("LEFT", true);
-            case A -> player.setKeyPressed("LEFT", true);
             case RIGHT -> player.setKeyPressed("RIGHT", true);
-            case D -> player.setKeyPressed("RIGHT", true);
         }
         if (event.getCode() == KeyCode.ESCAPE && (isGameOver || isVictory)) {
             returnToMenu();
@@ -268,13 +344,23 @@ public class GameManager {
     public void handleKeyReleased(KeyEvent event) {
         switch (event.getCode()) {
             case UP -> player.setKeyPressed("UP", false);
-            case W -> player.setKeyPressed("UP", false);
             case DOWN -> player.setKeyPressed("DOWN", false);
-            case S -> player.setKeyPressed("DOWN", false);
             case LEFT -> player.setKeyPressed("LEFT", false);
-            case A -> player.setKeyPressed("LEFT", false);
             case RIGHT -> player.setKeyPressed("RIGHT", false);
-            case D -> player.setKeyPressed("RIGHT", false);
+
+            case SPACE -> {
+                isAutoShooting = !isAutoShooting;
+                System.out.println("自動射擊狀態：" + (isAutoShooting ? "開啟" : "關閉"));
+            }
+
+            case C -> {
+                if (player != null && player.useBomb()) {
+                    System.out.println("[核心呼叫] 消耗 1 次充能，執行 BOMB.EXE：清空全螢幕敵方子彈！");
+                    enemyBullets.clear();
+                } else {
+                    System.out.println("[警告] 充能不足，無法執行 BOMB.EXE！");
+                }
+            }
         }
     }
 
