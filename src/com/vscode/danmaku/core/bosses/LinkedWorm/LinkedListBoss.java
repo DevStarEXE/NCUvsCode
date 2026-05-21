@@ -10,7 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class LinkedListBoss extends GameObject {
-    private final int maxHp = 400;
+    private final int maxHp = (int)(300 * com.vscode.danmaku.core.GameManager.difficultyMultiplier);
     private int bossHp = maxHp;
 
     private boolean isGameOver = false;
@@ -37,11 +37,23 @@ public class LinkedListBoss extends GameObject {
     private static final int BUFFER_OFFSET = 6;
 
     // --- 技能相關變數 ---
-    private enum BossState { NORMAL, RETRACTING, SHOOTING }
+    private enum BossState { NORMAL, RETRACTING, SHOOTING, DASHING }
     private BossState state = BossState.NORMAL;
+    private BossState nextStateAfterRetract = BossState.SHOOTING;
     private long lastSkillTime = 0;
+    private long lastSkill2Time = 0;
     private int shotsFired = 0;
     private long lastShotTime = 0;
+    
+    // 突進相關
+    private int bounceCount = 0;
+    private int targetBounces = 0;
+    private double dashVx = 0;
+    private double dashVy = 0;
+    private double retractTargetX = 0;
+    private double retractTargetY = 0;
+    private long dashChargeStartTime = 0;
+    private boolean isDashCharging = false;
 
     public LinkedListBoss(double x, double y) {
         super(x, y, 0, 0); 
@@ -79,11 +91,29 @@ public class LinkedListBoss extends GameObject {
         }
 
         if (state == BossState.NORMAL) {
-            // 每 20 秒觸發一次收尾巴技能
+            // 每 20 秒觸發一次收尾巴技能 (技能1)
             if (now - lastSkillTime > 20_000_000_000L) {
                 state = BossState.RETRACTING;
-                System.out.println("[BOSS SKILL] LinkedList Worm 準備釋放擴散攻擊！");
+                nextStateAfterRetract = BossState.SHOOTING;
+                retractTargetX = 385;
+                retractTargetY = 80;
+                System.out.println("[BOSS SKILL 1] LinkedList Worm 準備釋放擴散攻擊！");
                 return; // 當下不處理其他移動
+            }
+
+            // 每 10 秒檢查一次突進技能 (技能2)
+            if (now - lastSkill2Time > 3_000_000_000L) {
+                lastSkill2Time = now;
+                // 如果玩家在 Boss 上方 (玩家 Y < Boss Y)，必定發動
+                if (playerY < y) {
+                    state = BossState.RETRACTING;
+                    nextStateAfterRetract = BossState.DASHING;
+                    retractTargetX = x; // 原地收縮
+                    retractTargetY = y;
+                    targetBounces = 2; // 彈跳兩次
+                    System.out.println("[BOSS SKILL 2] LinkedList Worm 圍成一團準備突進！");
+                    return;
+                }
             }
 
             // --- 1. 不規則的隨機 X 軸竄動 ---
@@ -131,16 +161,12 @@ public class LinkedListBoss extends GameObject {
                 }
             }
         } else if (state == BossState.RETRACTING) {
-            // 移動到畫面上方 (目標 X 移到畫面中間，Y 移到 80)
-            double targetHx = 385;
-            double targetHy = 80;
-            
-            double dx = targetHx - x;
-            double dy = targetHy - y;
+            double dx = retractTargetX - x;
+            double dy = retractTargetY - y;
 
-            // 頭部移動
-            if (Math.abs(dx) > 4) x += Math.signum(dx) * 4; else x = targetHx;
-            if (Math.abs(dy) > 4) y += Math.signum(dy) * 4; else y = targetHy;
+            // 頭部移動 (僅在需要移動時，例如技能1有特定的目標 X,Y。若是原地收縮，則不會移動)
+            if (Math.abs(dx) > 4) x += Math.signum(dx) * 4; else x = retractTargetX;
+            if (Math.abs(dy) > 4) y += Math.signum(dy) * 4; else y = retractTargetY;
 
             nodes.get(0).x = x;
             nodes.get(0).y = y;
@@ -152,10 +178,10 @@ public class LinkedListBoss extends GameObject {
                 double ndx = x - node.x;
                 double ndy = y - node.y;
                 
-                if (Math.hypot(ndx, ndy) > 5) {
-                    // 隨著距離加快收縮速度
-                    node.x += ndx * 0.08 + Math.signum(ndx) * 2;
-                    node.y += ndy * 0.08 + Math.signum(ndy) * 2;
+                if (Math.hypot(ndx, ndy) > 2) {
+                    // 為了讓玩家有反應時間，收縮速度稍微調慢一點，作為天然的「蓄力時間」
+                    node.x += ndx * 0.03 + Math.signum(ndx) * 1.5;
+                    node.y += ndy * 0.03 + Math.signum(ndy) * 1.5;
                     allRetracted = false;
                 } else {
                     node.x = x;
@@ -163,9 +189,24 @@ public class LinkedListBoss extends GameObject {
                 }
             }
 
-            // 當頭部到達指定位置且所有節點都收縮完畢時
-            if (x == targetHx && y == targetHy && allRetracted) {
-                state = BossState.SHOOTING;
+            // 當頭部到達指定位置且所有節點都完全收縮完畢時，直接發動攻擊 (用收縮過程取代靜止的蓄力時間)
+            if (Math.abs(x - retractTargetX) <= 4 && Math.abs(y - retractTargetY) <= 4 && allRetracted) {
+                state = nextStateAfterRetract;
+                
+                if (state == BossState.DASHING) {
+                    // 重置 Buffer，讓身體從頭部開始拉出，避免視覺上瞬間彈回原本位置
+                    positionBuffer.clear();
+                    for (int i = 0; i < (nodes.size() * BUFFER_OFFSET + 1); i++) {
+                        positionBuffer.add(new Double[]{x, y});
+                    }
+
+                    // 技能2 突進前置作業：計算角度與速度
+                    double angle = Math.atan2(playerY - y, playerX - x);
+                    double dashSpeed = 16.0; // 極快的突進速度
+                    dashVx = Math.cos(angle) * dashSpeed;
+                    dashVy = Math.sin(angle) * dashSpeed;
+                    bounceCount = 0;
+                }
             }
         } else if (state == BossState.SHOOTING) {
             // 持續發射對應次數 (次數 = 節點數量)
@@ -189,10 +230,10 @@ public class LinkedListBoss extends GameObject {
                 shotsFired++;
                 lastShotTime = now;
                 
-                System.out.println("[BOSS SKILL] 發射第 " + shotsFired + " / " + totalShots + " 波！");
+                System.out.println("[BOSS SKILL 1] 發射第 " + shotsFired + " / " + totalShots + " 波！");
 
                 if (shotsFired >= totalShots) {
-                    System.out.println("[BOSS SKILL] 技能結束，共發射 " + totalShots + " 波！");
+                    System.out.println("[BOSS SKILL 1] 技能結束，共發射 " + totalShots + " 波！");
                     shotsFired = 0; // 重置計數器
 
                     // 重置 Buffer，並填滿目前座標，讓節點從頭部重新長出，而不會亂跳
@@ -204,6 +245,48 @@ public class LinkedListBoss extends GameObject {
                     // 恢復正常狀態並重置技能冷卻
                     state = BossState.NORMAL;
                     lastSkillTime = now;
+                }
+            }
+        } else if (state == BossState.DASHING) {
+            // 突進狀態邏輯
+            x += dashVx;
+            y += dashVy;
+
+            nodes.get(0).x = x;
+            nodes.get(0).y = y;
+
+            // 突進時將頭部座標推入 Buffer，讓身體節點像蛇一樣快速跟隨
+            positionBuffer.addFirst(new Double[]{x, y});
+            int maxBuffer = (nodes.size() - 1) * BUFFER_OFFSET + 1;
+            while (positionBuffer.size() > maxBuffer) {
+                positionBuffer.removeLast();
+            }
+
+            for (int i = 1; i < nodes.size(); i++) {
+                BossNode node = nodes.get(i);
+                int readIndex = i * BUFFER_OFFSET;
+                if (readIndex < positionBuffer.size()) {
+                    Double[] delayedCoords = positionBuffer.get(readIndex);
+                    node.x = delayedCoords[0];
+                    node.y = delayedCoords[1] + 15; 
+                }
+            }
+
+            // 邊界反彈偵測
+            boolean bounced = false;
+            double canvasWidth = 800; // 假設畫布寬度
+            double canvasHeight = 600; // 假設畫布高度
+            
+            if (x < 0) { x = 0; dashVx = -dashVx; bounced = true; }
+            if (x > canvasWidth - 20) { x = canvasWidth - 20; dashVx = -dashVx; bounced = true; }
+            if (y < 0) { y = 0; dashVy = -dashVy; bounced = true; }
+            if (y > canvasHeight - 20) { y = canvasHeight - 20; dashVy = -dashVy; bounced = true; }
+
+            if (bounced) {
+                bounceCount++;
+                if (bounceCount >= targetBounces) {
+                    System.out.println("[BOSS SKILL] 突進結束，恢復正常行動。");
+                    state = BossState.NORMAL;
                 }
             }
         }
@@ -230,7 +313,7 @@ public class LinkedListBoss extends GameObject {
         }
 
         // 3. 如果在收縮/發射狀態，繪製一顆包圍頭部的能量球
-        if (state != BossState.NORMAL) {
+        if (state == BossState.RETRACTING || state == BossState.SHOOTING) {
             double maxRadius = 20 + nodes.size() * 1.5;
             
             // 計算收縮進度
