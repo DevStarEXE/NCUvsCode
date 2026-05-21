@@ -17,6 +17,7 @@ import java.util.Random;
 
 import com.vscode.danmaku.core.bosses.ForLoopBoss;
 import com.vscode.danmaku.core.bosses.LinkedWorm.LinkedListBoss;
+import com.vscode.danmaku.core.bosses.RecursionBoss;
 
 public class GameManager {
     private boolean isGameOver = false;
@@ -33,6 +34,7 @@ public class GameManager {
 
     private LinkedListBoss linkedListBoss;
     private ForLoopBoss forLoopBoss;
+    private RecursionBoss recursionBoss;
     private final List<EnemyBullet> enemyBullets = new ArrayList<>();
 
     private boolean isAutoShooting = true;
@@ -62,6 +64,9 @@ public class GameManager {
         if (selectedLevel.equals("FOR LOOP")) {
             forLoopBoss = new ForLoopBoss();
             System.out.println("生成階層式 For Loop Boss");
+        } else if (selectedLevel.equals("RECURSION")) {
+            recursionBoss = new RecursionBoss();
+            System.out.println("生成 Recursion Boss");
         } else {
             linkedListBoss = new LinkedListBoss(400.0, 100.0);
             System.out.println("生成 LinkedList Boss");
@@ -140,16 +145,33 @@ public class GameManager {
                 }
             }
         }
+        else if (recursionBoss != null && recursionBoss.isAlive()) {
+            recursionBoss.update(now, enemyBullets, player.x, player.y);
+            for (Bullet b : playerBullets) {
+                if (b.isAlive()) {
+                    if (recursionBoss.hit(b)) {
+                        score += 3000;
+                        isVictory = true;
+                    } else if (!b.isAlive()) {
+                        score += 15;
+                        player.addCharge(5.0);
+                    }
+                }
+            }
+        }
         else if (linkedListBoss != null && linkedListBoss.isAlive()) {
             linkedListBoss.setTargetX(player.x);
             linkedListBoss.setTargetY(player.y);
-            linkedListBoss.update(now);
+            linkedListBoss.update(now, enemyBullets, player.x, player.y);
             for (Bullet b : playerBullets) {
                 if (b.isAlive()) {
-                    if (linkedListBoss.hit(b)) {
-                        score += 1000;
-                        isVictory = true;
-                    } else if (!b.isAlive()) {
+                    boolean hit = linkedListBoss.hit(b);
+                    if (hit) {
+                        if (!linkedListBoss.isAlive()) {
+                            score += 1000;
+                            isVictory = true;
+                        }
+                    } else if (!b.isAlive()) { // 這邊保留您原本增加充能的邏輯
                         score += 10;
                         player.addCharge(5.0);
                     }
@@ -185,6 +207,7 @@ public class GameManager {
         gc.fillRect(0, 0, gameCanvas.getWidth(), gameCanvas.getHeight());
 
         if (forLoopBoss != null) forLoopBoss.draw(gc);
+        if (recursionBoss != null) recursionBoss.draw(gc);
         if (linkedListBoss != null) linkedListBoss.draw(gc);
 
         drawBossHealthBar(gc);
@@ -312,6 +335,21 @@ public class GameManager {
             gc.setStroke(Color.web("#888888"));
             gc.strokeRect(barX, barY, barWidth, barHeight);
         }
+        else if (recursionBoss != null && recursionBoss.isAlive()) {
+            gc.setFill(Color.web("#333333"));
+            gc.fillRect(barX, barY, barWidth, barHeight);
+            int currentHp = recursionBoss.getHp();
+            int maxHp = recursionBoss.getMaxHp();
+            double hpRatio = (double) currentHp / maxHp;
+            int percent = (int)(hpRatio * 100);
+            gc.setFill(Color.web("#800080"));
+            gc.fillRect(barX, barY, barWidth * hpRatio, barHeight);
+            gc.setStroke(Color.web("#888888"));
+            gc.strokeRect(barX, barY, barWidth, barHeight);
+            gc.setFill(Color.WHITE);
+            gc.setFont(new Font("Monospaced", 11));
+            gc.fillText(String.format("RECURSION: Base Case  %d/%d  %d%%", currentHp, maxHp, percent), barX, barY - 8);
+        }
         else if (linkedListBoss != null && linkedListBoss.isAlive()) {
             gc.setFill(Color.web("#333333"));
             gc.fillRect(barX, barY, barWidth, barHeight);
@@ -364,6 +402,7 @@ public class GameManager {
             case C -> {
                 if (player != null && player.useBomb()) {
                     System.out.println("[核心呼叫] 消耗 1 次充能，執行 BOMB.EXE：清空全螢幕敵方子彈！");
+                    for (EnemyBullet eb : enemyBullets) { eb.setAlive(false); }
                     enemyBullets.clear();
                 } else {
                     System.out.println("[警告] 充能不足，無法執行 BOMB.EXE！");
