@@ -5,12 +5,10 @@
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.ColumnConstraints?>
-<?import javafx.scene.layout.GridPane?>
-<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.vscode.menu.LevelController">
+<AnchorPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.vscode.menu.LevelController">
     <children>
         <ImageView fitHeight="600.0" fitWidth="800.0" pickOnBounds="true" preserveRatio="false" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
             <image>
@@ -24,26 +22,14 @@
             </font>
         </Label>
 
-        <GridPane alignment="CENTER" hgap="30.0" vgap="30.0" AnchorPane.leftAnchor="100.0" AnchorPane.rightAnchor="100.0" AnchorPane.topAnchor="180.0">
+        <HBox alignment="CENTER" spacing="20.0" AnchorPane.leftAnchor="30.0" AnchorPane.rightAnchor="30.0" AnchorPane.topAnchor="200.0">
             <children>
-                <Button mnemonicParsing="false" onAction="#handleLevelSelect" prefHeight="100.0" prefWidth="100.0" style="-fx-background-color: #4B0082; -fx-text-fill: white; -fx-font-size: 16; -fx-font-weight: bold; -fx-background-radius: 15; -fx-cursor: hand;" text="FOR LOOP" GridPane.columnIndex="0" GridPane.rowIndex="0" />
-                <Button mnemonicParsing="false" onAction="#handleLevelSelect" prefHeight="100.0" prefWidth="100.0" style="-fx-font-size: 20; -fx-background-color: #B5748A; -fx-background-radius: 15; -fx-cursor: hand;" text="Binary" GridPane.columnIndex="1" GridPane.rowIndex="0" />
-                <Button mnemonicParsing="false" onAction="#handleLevelSelect" prefHeight="100.0" prefWidth="100.0" style="-fx-font-size: 28; -fx-background-radius: 15; -fx-cursor: hand;" text="3" GridPane.columnIndex="2" GridPane.rowIndex="0" />
-                <Button mnemonicParsing="false" onAction="#handleLevelSelect" prefHeight="100.0" prefWidth="100.0" style="-fx-font-size: 28; -fx-background-radius: 15; -fx-cursor: hand;" text="4" GridPane.columnIndex="3" GridPane.rowIndex="0" />
-
-                <Button mnemonicParsing="false" onAction="#handleLevelSelect" prefHeight="100.0" prefWidth="490.0" style="-fx-background-color: #8B0000; -fx-text-fill: white; -fx-font-size: 32; -fx-font-weight: bold; -fx-background-radius: 15; -fx-cursor: hand;" text="☠ LINKED LIST WORM ☠" GridPane.columnIndex="0" GridPane.columnSpan="4" GridPane.rowIndex="1" />
+                <Button mnemonicParsing="false" onAction="#handleLevelSelect" prefHeight="150.0" prefWidth="160.0" style="-fx-background-color: #4B0082; -fx-text-fill: white; -fx-font-size: 18; -fx-font-weight: bold; -fx-background-radius: 15; -fx-cursor: hand;" text="FOR LOOP" textAlignment="CENTER" wrapText="true" />
+                <Button mnemonicParsing="false" onAction="#handleLevelSelect" prefHeight="150.0" prefWidth="160.0" style="-fx-background-color: #800080; -fx-text-fill: white; -fx-font-size: 18; -fx-font-weight: bold; -fx-background-radius: 15; -fx-cursor: hand;" text="RECURSION" textAlignment="CENTER" wrapText="true" />
+                <Button mnemonicParsing="false" onAction="#handleLevelSelect" prefHeight="150.0" prefWidth="160.0" style="-fx-background-color: #005577; -fx-text-fill: white; -fx-font-size: 18; -fx-font-weight: bold; -fx-background-radius: 15; -fx-cursor: hand;" text="BINARY SEARCH" textAlignment="CENTER" wrapText="true" />
+                <Button mnemonicParsing="false" onAction="#handleLevelSelect" prefHeight="150.0" prefWidth="160.0" style="-fx-background-color: #8B0000; -fx-text-fill: white; -fx-font-size: 18; -fx-font-weight: bold; -fx-background-radius: 15; -fx-cursor: hand;" text="LINKED LIST" textAlignment="CENTER" wrapText="true" />
             </children>
-         <columnConstraints>
-            <ColumnConstraints />
-            <ColumnConstraints />
-            <ColumnConstraints />
-            <ColumnConstraints />
-         </columnConstraints>
-         <rowConstraints>
-            <RowConstraints />
-            <RowConstraints />
-         </rowConstraints>
-        </GridPane>
+        </HBox>
 
         <Button mnemonicParsing="false" onAction="#handleBackToMenu" prefHeight="40.0" prefWidth="100.0" style="-fx-cursor: hand;" text="&lt; Back" AnchorPane.bottomAnchor="40.0" AnchorPane.leftAnchor="40.0">
             <font>

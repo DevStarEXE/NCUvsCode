@@ -14,8 +14,8 @@ public class BinarySearchBoss {
     public double width = 60, height = 60;
 
     // Boss 血量與存活狀態
-    private final int MaxHp = 200;
-    private int hp = MaxHp;
+    private final int maxHp = (int)(300 * com.vscode.danmaku.core.GameManager.difficultyMultiplier);
+    private int hp = maxHp;
 
     private boolean isAlive = true;
 
@@ -190,5 +190,5 @@ public class BinarySearchBoss {
 
     public boolean isAlive() { return isAlive; }
     public int getHp() { return hp; }
-    public int getMaxHp() { return MaxHp; }
+    public int getMaxHp() { return maxHp; }
 }

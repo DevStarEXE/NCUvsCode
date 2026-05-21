@@ -109,6 +109,9 @@ public class EnemyBullet2 {
         double pCenterX = px + pWidth / 2;
         double pCenterY = py + pHeight / 2;
         double distance = Math.sqrt(Math.pow(x - pCenterX, 2) + Math.pow(y - pCenterY, 2));
-        return distance < (radius + pWidth / 2 - 5);
+        
+        // 玩家的真實 Hitbox 改為半徑 2.0 的小圓
+        double playerHitboxRadius = 2.0;
+        return distance < (radius + playerHitboxRadius);
     }
 }
