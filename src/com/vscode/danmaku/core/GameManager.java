@@ -6,13 +6,11 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
-
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import java.io.IOException;
 import javafx.scene.input.KeyCode;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,32 +25,28 @@ public class GameManager {
     private final GraphicsContext gc;
     private Player player;
 
-
-
-    // --- 修正 1：移除多餘的 boss 變數，統一使用下面宣告的兩隻王 ---
     private final List<Bullet> playerBullets = new ArrayList<>();
     private AnimationTimer gameLoop;
 
     public static String selectedLevel = "BOSS";
 
     private LinkedListBoss linkedListBoss;
-    private ForLoopBoss forLoopBoss; // 只保留這個宣告
-
-    private List<EnemyBullet> enemyBullets = new ArrayList<>();
+    private ForLoopBoss forLoopBoss;
+    private final List<EnemyBullet> enemyBullets = new ArrayList<>();
 
     public GameManager(Canvas gameCanvas) {
         this.gameCanvas = gameCanvas;
         this.gc = gameCanvas.getGraphicsContext2D();
 
-        // --- 補回遺失的玩家初始化 (假設你的 Player 需要座標) ---
-        this.player = new Player(400, 500);
+        // 初始化玩家位置
+        this.player = new Player(380, 500);
 
-        // --- 補回遺失的遊戲迴圈 (AnimationTimer) ---
+        // 初始化遊戲核心引擎迴圈
         this.gameLoop = new AnimationTimer() {
             @Override
             public void handle(long now) {
-                update(now); // 每幀更新邏輯
-                draw(gc);    // 每幀重新繪圖
+                update(now);
+                draw(gc);
             }
         };
 
@@ -62,9 +56,8 @@ public class GameManager {
     private void init() {
         if (selectedLevel.equals("FOR LOOP")) {
             forLoopBoss = new ForLoopBoss();
-            System.out.println("生成 For Loop Boss");
+            System.out.println("生成階層式 For Loop Boss");
         } else {
-            // 加上 X 和 Y 座標 (例如 X=400, Y=100)
             linkedListBoss = new LinkedListBoss(400.0, 100.0);
             System.out.println("生成 LinkedList Boss");
         }
@@ -79,16 +72,17 @@ public class GameManager {
         double cw = gameCanvas.getWidth();
         double ch = gameCanvas.getHeight();
 
-        // 1. 更新玩家與邊界限制
+        // 1. 更新玩家位置與邊界安全限制
         player.update(now);
         if (player.x < 0) player.x = 0;
         if (player.x > cw - player.width) player.x = cw - player.width;
         if (player.y < 0) player.y = 0;
         if (player.y > ch - player.height) player.y = ch - player.height;
 
+        // 2. 【全自動開火機制】不干擾躲避彈幕的手感
         player.shoot(now, playerBullets);
 
-        // 2. 更新玩家子彈與出界銷毀
+        // 3. 更新玩家發射的子彈與效能優化出界銷毀
         for (Bullet b : playerBullets) {
             b.update(now);
             if (b.y + b.height < 0 || b.y > ch || b.x < 0 || b.x > cw) {
@@ -96,19 +90,18 @@ public class GameManager {
             }
         }
 
-        // --- 修正 2：統一處理 BOSS 的更新與碰撞邏輯 ---
+        // 4. 更新動態 BOSS 狀態與判定機制
         if (forLoopBoss != null && forLoopBoss.isAlive()) {
-            forLoopBoss.update(now, enemyBullets);
+            // 傳入 player 的 X, Y，提供核心階段進行精準運算狙擊
+            forLoopBoss.update(now, enemyBullets, player.x, player.y);
 
-            // 判定玩家子彈打 For Loop
             for (Bullet b : playerBullets) {
                 if (b.isAlive()) {
                     if (forLoopBoss.hit(b)) {
-                        score += 2000;
+                        score += 5000; // 破譯三層巢狀迴圈給予高分獎勵！
                         isVictory = true;
-                        System.out.println("For Loop BOSS 擊破！");
-                    } else if (!b.isAlive()) { // 如果子彈死亡代表有打中但王還沒死
-                        score += 10;
+                    } else if (!b.isAlive()) {
+                        score += 15;
                     }
                 }
             }
@@ -118,7 +111,6 @@ public class GameManager {
             linkedListBoss.setTargetY(player.y);
             linkedListBoss.update(now);
 
-            // 判定玩家子彈打蠕蟲
             for (Bullet b : playerBullets) {
                 if (b.isAlive()) {
                     if (linkedListBoss.hit(b)) {
@@ -130,22 +122,21 @@ public class GameManager {
                 }
             }
 
-            // 判定蠕蟲撞玩家
             if (linkedListBoss.isHittingPlayer(player)) {
                 player.setAlive(false);
                 isGameOver = true;
             }
         }
 
-        // 3. 更新敵方子彈與出界處理 (For Loop 專用)
+        // 5. 更新敵方幾何彈幕
         for (EnemyBullet eb : enemyBullets) {
             eb.update();
-            if (eb.x < 0 || eb.x > cw || eb.y < 0 || eb.y > ch) {
+            if (eb.x < -20 || eb.x > cw + 20 || eb.y < -20 || eb.y > ch + 20) {
                 eb.setAlive(false);
             }
         }
 
-        // 4. 碰撞偵測 (敵方子彈 vs 玩家)
+        // 6. 敵方彈幕 vs 玩家碰撞判定
         for (EnemyBullet eb : enemyBullets) {
             if (eb.isAlive() && eb.collidesWithPlayer(player.x, player.y, player.width, player.height)) {
                 player.setAlive(false);
@@ -154,75 +145,36 @@ public class GameManager {
             }
         }
 
-        // 5. 清理已銷毀物件
+        // 7. 記憶體資源清理
         playerBullets.removeIf(b -> !b.isAlive());
         enemyBullets.removeIf(eb -> !eb.isAlive());
     }
 
     private void draw(GraphicsContext gc) {
-        // 1. 清空畫布
+        // 暗色調 IDE 開發背景
         gc.setFill(Color.web("#1E1E1E"));
         gc.fillRect(0, 0, gameCanvas.getWidth(), gameCanvas.getHeight());
 
-        // --- 修正 3：動態取得當前存活的 BOSS 狀態來畫血條 ---
-        int currentHp = 0;
-        int maxHp = 1;
-        String bossName = "";
-        boolean isBossAlive = false;
+        // 1. 繪製當前關卡 BOSS 本體
+        if (forLoopBoss != null) forLoopBoss.draw(gc);
+        if (linkedListBoss != null) linkedListBoss.draw(gc);
 
-        if (forLoopBoss != null && forLoopBoss.isAlive()) {
-            forLoopBoss.draw(gc);
-            currentHp = forLoopBoss.getHp();
-            maxHp = forLoopBoss.getMaxHp();
-            bossName = "FOR_LOOP_GEOMETRY";
-            isBossAlive = true;
-        } else if (linkedListBoss != null && linkedListBoss.isAlive()) {
-            linkedListBoss.draw(gc);
-            currentHp = linkedListBoss.getBossHp();
-            maxHp = linkedListBoss.getMaxHp();
-            bossName = "LINKED_LIST_WORM";
-            isBossAlive = true;
-        }
+        // 2. 頂部動態血條整合 UI
+        drawBossHealthBar(gc);
 
-        // 2. 繪製 BOSS 血條
-        if (isBossAlive) {
-            double barWidth = 400;
-            double barHeight = 14;
-            double cw = gameCanvas.getWidth();
-            double barX = (cw - barWidth) / 2;
-            double barY = 20;
-
-            gc.setFill(Color.web("#333333"));
-            gc.fillRect(barX, barY, barWidth, barHeight);
-
-            double hpRatio = (double) currentHp / maxHp;
-            double currentBarWidth = barWidth * hpRatio;
-
-            gc.setFill(Color.web("#F44336"));
-            gc.fillRect(barX, barY, currentBarWidth, barHeight);
-
-            gc.setStroke(Color.web("#888888"));
-            gc.setLineWidth(1.5);
-            gc.strokeRect(barX, barY, barWidth, barHeight);
-
-            gc.setFill(Color.web("#859900"));
-            gc.setFont(new Font("Monospaced", 11));
-            gc.fillText("[PROCESS] BOSS: " + bossName, barX, barY - 6);
-        }
-
-        // 3. 繪製子彈與玩家
+        // 3. 繪製所有子彈與玩家物件
         for (Bullet b : playerBullets) { b.draw(gc); }
         for (EnemyBullet eb : enemyBullets) { eb.draw(gc); }
-        if (player != null) { player.draw(gc); }
+        if (player != null && player.isAlive()) { player.draw(gc); }
 
-        // 4. 繪製 UI 分數
+        // 4. 繪製計分板
         gc.setFill(Color.LIGHTGRAY);
         gc.setFont(new Font("Monospaced", 18));
         gc.fillText("SCORE: " + String.format("%05d", score), 20, 30);
 
-        // 5. 繪製結算畫面
+        // 5. 繪製終局結算黑化遮罩
         if (isGameOver || isVictory) {
-            gc.setFill(Color.web("#000000", 0.7));
+            gc.setFill(Color.web("#000000", 0.75));
             gc.fillRect(0, 0, gameCanvas.getWidth(), gameCanvas.getHeight());
 
             gc.setFont(new Font("Monospaced", 60));
@@ -241,6 +193,59 @@ public class GameManager {
             gc.setFont(new Font("Monospaced", 20));
             gc.fillText("Press [ESC] to Return Title", centerX - 150, centerY + 50);
             gc.fillText("Final Score: " + score, centerX - 90, centerY + 90);
+        }
+    }
+
+    /**
+     * 支援多層血量顯示的頂部血條 UI 核心
+     */
+    private void drawBossHealthBar(GraphicsContext gc) {
+        double barWidth = 400;
+        double barHeight = 14;
+        double barX = (gameCanvas.getWidth() - barWidth) / 2;
+        double barY = 25;
+
+        if (forLoopBoss != null && forLoopBoss.isAlive()) {
+            // 背景底槽
+            gc.setFill(Color.web("#333333"));
+            gc.fillRect(barX, barY, barWidth, barHeight);
+
+            // 動態依據目前殘留層級填滿血條顏色
+            double hpRatio;
+            if (forLoopBoss.isKAlive()) {
+                hpRatio = (double) forLoopBoss.getHpK() / 100;
+                gc.setFill(Color.web("#FF00FF")); // 外層 K 紫色血條
+                gc.fillRect(barX, barY, barWidth * hpRatio, barHeight);
+                gc.fillText("[COMPILING] NESTED_LOOP: Layer_K (Shielding)", barX, barY - 8);
+            } else if (forLoopBoss.isJAlive()) {
+                hpRatio = (double) forLoopBoss.getHpJ() / 100;
+                gc.setFill(Color.web("#00FFFF")); // 中層 J 青藍色血條
+                gc.fillRect(barX, barY, barWidth * hpRatio, barHeight);
+                gc.fillText("[COMPILING] NESTED_LOOP: Layer_J (Warning)", barX, barY - 8);
+            } else {
+                hpRatio = (double) forLoopBoss.getHpI() / 120;
+                gc.setFill(Color.web("#FF3333")); // 核心 I 致命紅血條
+                gc.fillRect(barX, barY, barWidth * hpRatio, barHeight);
+                gc.fillText("[OVERLOAD] NESTED_LOOP: Core_I (Critical)", barX, barY - 8);
+            }
+
+            gc.setStroke(Color.web("#888888"));
+            gc.strokeRect(barX, barY, barWidth, barHeight);
+        }
+        else if (linkedListBoss != null && linkedListBoss.isAlive()) {
+            gc.setFill(Color.web("#333333"));
+            gc.fillRect(barX, barY, barWidth, barHeight);
+
+            double hpRatio = (double) linkedListBoss.getBossHp() / linkedListBoss.getMaxHp();
+            gc.setFill(Color.web("#F44336"));
+            gc.fillRect(barX, barY, barWidth * hpRatio, barHeight);
+
+            gc.setStroke(Color.web("#888888"));
+            gc.strokeRect(barX, barY, barWidth, barHeight);
+
+            gc.setFill(Color.web("#859900"));
+            gc.setFont(new Font("Monospaced", 11));
+            gc.fillText("[PROCESS] BOSS: LINKED_LIST_WORM", barX, barY - 8);
         }
     }
 
@@ -265,10 +270,6 @@ public class GameManager {
         }
     }
 
-    private boolean spacePressed = false;
-    public boolean isSpacePressed() { return spacePressed; }
-    public void setSpacePressed(boolean spacePressed) { this.spacePressed = spacePressed; }
-
     private void returnToMenu() {
         try {
             stop();
@@ -277,10 +278,8 @@ public class GameManager {
             Scene menuScene = new Scene(fxmlLoader.load(), 800, 600);
             stage.setScene(menuScene);
             stage.setTitle("遊戲主選單");
-            System.out.println("已返回主選單");
         } catch (IOException e) {
             e.printStackTrace();
-            System.out.println("返回主選單失敗！請檢查路徑。");
         }
     }
 }

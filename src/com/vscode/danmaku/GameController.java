@@ -1,19 +1,13 @@
-package com.vscode.danmaku;
+package com.vscode.danmaku; // 依照你的實際 Package
 
 import com.vscode.danmaku.core.GameManager;
-import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
-import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.Pane;
 
 public class GameController {
 
     @FXML
-    private Canvas gameCanvas; // 引用 FXML 裡的 Canvas
-
-    @FXML
-    private Pane rootPane; // 引用 FXML 的根物件，用於鍵盤接聽
+    private Canvas gameCanvas;
 
     private GameManager gameManager;
 
@@ -21,26 +15,15 @@ public class GameController {
     public void initialize() {
         gameManager = new GameManager(gameCanvas);
 
-        // --- 修正：等待 Canvas 真正被加進 Scene 之後，才綁定鍵盤事件 ---
+        // 安全綁定：等待 Canvas 被加入 Scene 之後再綁定鍵盤事件 (解決 NullPointerException)
         gameCanvas.sceneProperty().addListener((observable, oldScene, newScene) -> {
             if (newScene != null) {
-                // 當 newScene 不為空時，代表畫面已經準備好了，這時綁定才安全！
                 newScene.setOnKeyPressed(event -> gameManager.handleKeyPressed(event));
                 newScene.setOnKeyReleased(event -> gameManager.handleKeyReleased(event));
             }
         });
 
-        // 啟動遊戲迴圈
+        // 啟動遊戲核心迴圈
         gameManager.start();
-    }
-
-    @FXML
-    private void handleKeyPressed(KeyEvent event) {
-        gameManager.handleKeyPressed(event);
-    }
-
-    @FXML
-    private void handleKeyReleased(KeyEvent event) {
-        gameManager.handleKeyReleased(event);
     }
 }
