@@ -17,11 +17,10 @@ public class LevelController {
     @FXML
     void handleLevelSelect(ActionEvent event) {
         Button clickedBtn = (Button) event.getSource();
-        String levelNumber = clickedBtn.getText();
-        System.out.println("玩家選擇了關卡：" + levelNumber);
+        String selected = clickedBtn.getText(); // 這裡會抓到 "FOR LOOP"
 
-        // 把 event 一併傳進去
-        startGame(levelNumber, event);
+        System.out.println("準備進入關卡：" + selected);
+        startGame(selected, event);
     }
 
     @FXML
@@ -35,31 +34,19 @@ public class LevelController {
     /**
      * 更新後的 startGame 方法：負責把選單視窗切換成遊戲視窗
      */
-    private void startGame(String level, ActionEvent event) {
-        // 1. 取得目前的視窗 (Stage)
+    private void startGame(String levelType, ActionEvent event) {
+        // 1. 取得視窗
         Stage stage = (Stage) ((javafx.scene.Node) event.getSource()).getScene().getWindow();
 
-        // 2. 呼叫你的遊戲本體並接管視窗
+        // 2. 設定一個「全域旗標」，讓遊戲主體知道要生出哪隻王
+        // 我們假設在 GameManager 裡新增一個 static 變數
+        com.vscode.danmaku.core.GameManager.selectedLevel = levelType;
+
         try {
-            System.out.println("正在切換至遊戲畫面...");
-
-            // ==========================================
-            // 【關鍵點】這裡要替換成你原本遊戲主程式的呼叫方式
-            // ==========================================
-
-            // 寫法 A：如果你原本的遊戲寫在 com.vscode.danmaku.Main 裡面
+            // 切換至遊戲主程式
             com.vscode.danmaku.Main gameApp = new com.vscode.danmaku.Main();
             gameApp.start(stage);
-
-            /* // 寫法 B：如果你有獨立的 GameManager 類別負責產生 Scene
-            GameManager gameManager = new GameManager();
-            // 可以把 level 傳進去讓遊戲知道要生成哪隻王
-            Scene gameScene = gameManager.createGameScene(level);
-            stage.setScene(gameScene);
-            */
-
         } catch (Exception e) {
-            System.out.println("啟動遊戲時發生錯誤！");
             e.printStackTrace();
         }
     }

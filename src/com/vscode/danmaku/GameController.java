@@ -18,19 +18,19 @@ public class GameController {
     private GameManager gameManager;
 
     @FXML
-    private void initialize() {
-        // 初始化 GameManager
+    public void initialize() {
         gameManager = new GameManager(gameCanvas);
-        System.out.println("DEBUG: Game Controller Initialized.");
 
-        // 在 FXML 介面加載完成後，確保鍵盤事件被接聽
-        Platform.runLater(() -> {
-            rootPane.getScene().setOnKeyPressed(this::handleKeyPressed);
-            rootPane.getScene().setOnKeyReleased(this::handleKeyReleased);
-            rootPane.requestFocus(); // 聚焦 root 以獲得按鍵
+        // --- 修正：等待 Canvas 真正被加進 Scene 之後，才綁定鍵盤事件 ---
+        gameCanvas.sceneProperty().addListener((observable, oldScene, newScene) -> {
+            if (newScene != null) {
+                // 當 newScene 不為空時，代表畫面已經準備好了，這時綁定才安全！
+                newScene.setOnKeyPressed(event -> gameManager.handleKeyPressed(event));
+                newScene.setOnKeyReleased(event -> gameManager.handleKeyReleased(event));
+            }
         });
 
-        // 開始遊戲循環
+        // 啟動遊戲迴圈
         gameManager.start();
     }
 
