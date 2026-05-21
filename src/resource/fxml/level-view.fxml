@@ -31,6 +31,8 @@
             </children>
         </HBox>
 
+        <Button layoutX="320.0" layoutY="380.0" mnemonicParsing="false" onAction="#handleLevelSelect" prefHeight="60.0" prefWidth="160.0" style="-fx-background-color: #2E8B57; -fx-text-fill: white; -fx-font-size: 20; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="TUTORIAL" AnchorPane.bottomAnchor="140.0" AnchorPane.leftAnchor="320.0" AnchorPane.rightAnchor="320.0" />
+
         <Button mnemonicParsing="false" onAction="#handleBackToMenu" prefHeight="40.0" prefWidth="100.0" style="-fx-cursor: hand;" text="&lt; Back" AnchorPane.bottomAnchor="40.0" AnchorPane.leftAnchor="40.0">
             <font>
                 <Font size="16.0" />

@@ -20,6 +20,11 @@ import com.vscode.danmaku.core.bosses.LinkedWorm.LinkedListBoss;
 import com.vscode.danmaku.core.bosses.RecursionBoss;
 import com.vscode.danmaku.core.bosses.BinarySearchBoss;
 
+import javafx.application.Platform;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import java.util.Optional;
+
 public class GameManager {
     private boolean isGameOver = false;
     private boolean isVictory = false;
@@ -50,6 +55,20 @@ public class GameManager {
     private long timeStopEndTime = 0;
     private final Random random = new Random();
 
+    // 教學關卡相關
+    private int tutorialPhase = 0; 
+    private long tutorialTimer = 0;
+    private int tutorialStepCount = 0;
+    private double targetX, targetY, targetSize = 50;
+    
+    // 鐳射與複雜彈幕相關
+    private boolean laserWarning = false;
+    private boolean laserActive = false;
+    private int laserType = 0; // 0: Vertical, 1: Sloped, 2: Circular
+    private List<Double> laserPositions = new ArrayList<>(); // X coords or Angles
+    private List<Double> laserSlopes = new ArrayList<>();
+    private long laserStartTime = 0;
+
     public GameManager(Canvas gameCanvas) {
         this.gameCanvas = gameCanvas;
         this.gc = gameCanvas.getGraphicsContext2D();
@@ -79,6 +98,13 @@ public class GameManager {
         } else if (selectedLevel.equals("LINKED LIST")) {
             linkedListBoss = new LinkedListBoss(400.0, 100.0);
             System.out.println("生成 LinkedList Boss");
+        } else if (selectedLevel.equals("TUTORIAL")) {
+            tutorialPhase = 1;
+            tutorialTimer = 0;
+            tutorialStepCount = 0;
+            targetX = 200;
+            targetY = 200;
+            System.out.println("開始教學關卡：第 1 階段 - 移動");
         } else {
             System.out.println("未知關卡或是尚未實作: " + selectedLevel);
         }
@@ -98,6 +124,139 @@ public class GameManager {
         if (player.x > cw - player.width) player.x = cw - player.width;
         if (player.y < 0) player.y = 0;
         if (player.y > ch - player.height) player.y = ch - player.height;
+
+        // 教學關卡邏輯
+        if (selectedLevel.equals("TUTORIAL")) {
+            switch (tutorialPhase) {
+                case 1 -> { // 移動到特定區域 (5次)
+                    double pCX = player.x + player.width / 2;
+                    double pCY = player.y + player.height / 2;
+                    if (Math.sqrt(Math.pow(pCX - targetX, 2) + Math.pow(pCY - targetY, 2)) < targetSize) {
+                        tutorialStepCount++;
+                        if (tutorialStepCount >= 5) {
+                            tutorialPhase = 2;
+                            tutorialStepCount = 0;
+                            tutorialTimer = 0;
+                            System.out.println("教學關卡：第 2 階段 - 使用技能");
+                        } else {
+                            // 隨機生成下一個位置
+                            targetX = 100 + random.nextDouble() * (cw - 200);
+                            targetY = 100 + random.nextDouble() * (ch - 200);
+                        }
+                    }
+                }
+                case 2 -> { // 使用技能 (持續生成邊緣子彈)
+                    if (tutorialTimer == 0) tutorialTimer = now;
+                    // 每 2.5 秒生成一波邊緣合圍子彈
+                    if (now - tutorialTimer > 2_500_000_000L) {
+                        double pCX = player.x + player.width / 2;
+                        double pCY = player.y + player.height / 2;
+                        // 從四個邊緣各選幾個點射向玩家
+                        for (int i = 1; i < 10; i += 2) {
+                            spawnBorderBullet(i * (cw / 10), 0, pCX, pCY);
+                            spawnBorderBullet(i * (cw / 10), ch, pCX, pCY);
+                            spawnBorderBullet(0, i * (ch / 10), pCX, pCY);
+                            spawnBorderBullet(cw, i * (ch / 10), pCX, pCY);
+                        }
+                        tutorialTimer = now;
+                    }
+                }
+                case 3 -> { // 躲開 10 顆子彈 (瞄準玩家)
+                    if (tutorialTimer == 0) tutorialTimer = now;
+                    if (now - tutorialTimer > 1_200_000_000L) {
+                        // 計算瞄準玩家的角度
+                        double pCX = player.x + player.width / 2;
+                        double pCY = player.y + player.height / 2;
+                        double mX = cw / 2;
+                        double mY = ch / 2;
+                        double angle = Math.toDegrees(Math.atan2(pCY - mY, pCX - mX));
+                        enemyBullets.add(new EnemyBullet(mX, mY, 3.5, angle)); 
+                        tutorialTimer = now;
+                    }
+                    if (tutorialStepCount >= 10) {
+                        tutorialPhase = 4;
+                        tutorialStepCount = 0;
+                        tutorialTimer = 0;
+                        System.out.println("教學關卡：第 4 階段 - 躲避鐳射");
+                    }
+                }
+                case 4 -> { // 躲避鐳射 10 次 (包含斜率、多條、圓形等複雜模式)
+                    if (tutorialTimer == 0) tutorialTimer = now;
+                    long elapsed = now - tutorialTimer;
+
+                    if (!laserWarning && !laserActive && elapsed > 1_500_000_000L) {
+                        laserWarning = true;
+                        laserStartTime = now;
+                        laserPositions.clear();
+                        laserSlopes.clear();
+                        
+                        // 隨機決定模式
+                        laserType = random.nextInt(3); 
+                        if (laserType == 0) { // 垂直模式 (至少 5 條)
+                            int count = 5 + random.nextInt(3);
+                            for (int i = 0; i < count; i++) {
+                                laserPositions.add(50 + random.nextDouble() * (cw - 100));
+                            }
+                        } else if (laserType == 1) { // 不同斜率模式 (至少 5 條)
+                            int count = 5 + random.nextInt(2);
+                            for (int i = 0; i < count; i++) {
+                                laserPositions.add(random.nextDouble() * cw); // 起點 X
+                                laserSlopes.add(-1.5 + random.nextDouble() * 3.0); // 斜率
+                            }
+                        } else { // 圓形擴張預警
+                            laserPositions.add(cw / 2);
+                            laserPositions.add(ch / 2);
+                        }
+                    }
+
+                    if (laserWarning && now - laserStartTime > 1_200_000_000L) {
+                        laserWarning = false;
+                        laserActive = true;
+                        laserStartTime = now;
+                    }
+
+                    if (laserActive) {
+                        // 碰撞檢查 (簡化邏輯)
+                        boolean hit = false;
+                        if (laserType == 0) {
+                            for (double lx : laserPositions) {
+                                if (Math.abs(player.x + player.width/2 - lx) < 25) hit = true;
+                            }
+                        } else if (laserType == 1) {
+                            for (int i = 0; i < laserPositions.size(); i++) {
+                                double sx = laserPositions.get(i);
+                                double slope = laserSlopes.get(i);
+                                // 點到直線距離公式簡化版
+                                double py = player.y + player.height/2;
+                                double px = player.x + player.width/2;
+                                double targetX = sx + slope * py;
+                                if (Math.abs(px - targetX) < 20) hit = true;
+                            }
+                        } else { // 圓形
+                            double dx = player.x + player.width/2 - laserPositions.get(0);
+                            double dy = player.y + player.height/2 - laserPositions.get(1);
+                            double dist = Math.sqrt(dx*dx + dy*dy);
+                            if (dist > 180 && dist < 220) hit = true;
+                        }
+
+                        if (hit && now % 300_000_000L < 20_000_000L) {
+                            tutorialStepCount--;
+                            if (tutorialStepCount < 0) tutorialStepCount = 0;
+                        }
+                        
+                        if (now - laserStartTime > 800_000_000L) {
+                            laserActive = false;
+                            tutorialStepCount++;
+                            tutorialTimer = now;
+                        }
+                    }
+
+                    if (tutorialStepCount >= 10) {
+                        isVictory = true;
+                    }
+                }
+            }
+        }
 
         if (powerUpEndTime != 0 && now > powerUpEndTime) {
             player.setFireMode(0);
@@ -226,6 +385,10 @@ public class GameManager {
                 eb.update();
                 if (eb.x < -20 || eb.x > cw + 20 || eb.y < -20 || eb.y > ch + 20) {
                     eb.setAlive(false);
+                    // 教學關卡：躲過子彈 (消失在螢幕外)
+                    if (selectedLevel.equals("TUTORIAL") && tutorialPhase == 3) {
+                        tutorialStepCount++;
+                    }
                 }
             }
 
@@ -243,8 +406,16 @@ public class GameManager {
         // 碰撞玩家判定 (不論時間是否停止都處理)
         for (EnemyBullet eb : enemyBullets) {
             if (eb.isAlive() && eb.collidesWithPlayer(player.x, player.y, player.width, player.height)) {
-                player.setAlive(false);
-                isGameOver = true;
+                if (selectedLevel.equals("TUTORIAL") && (tutorialPhase == 2 || tutorialPhase == 3)) {
+                    eb.setAlive(false);
+                    if (tutorialPhase == 3) {
+                        tutorialStepCount--;
+                        if (tutorialStepCount < 0) tutorialStepCount = 0;
+                    }
+                } else {
+                    player.setAlive(false);
+                    isGameOver = true;
+                }
                 break;
             }
         }
@@ -255,7 +426,7 @@ public class GameManager {
                 break;
             }
         }
-
+        
         playerBullets.removeIf(b -> !b.isAlive());
         enemyBullets.removeIf(eb -> !eb.isAlive());
         enemyBullet2s.removeIf(eb2 -> !eb2.isAlive());
@@ -280,6 +451,72 @@ public class GameManager {
         for (EnemyBullet eb : enemyBullets) { eb.draw(gc); }
         for (EnemyBullet2 eb2 : enemyBullet2s) { eb2.draw(gc); }
         if (player != null && player.isAlive()) { player.draw(gc); }
+
+        // 教學關卡視覺元素與文字提示
+        if (selectedLevel.equals("TUTORIAL")) {
+            gc.setFont(new Font("Monospaced", 16));
+            gc.setFill(Color.YELLOW);
+            
+            switch (tutorialPhase) {
+                case 1 -> {
+                    gc.fillText("STEP 1: Move to the TARGET AREA", 20, 100);
+                    // 繪製目標區域
+                    gc.setStroke(Color.CYAN);
+                    gc.setLineWidth(2);
+                    gc.strokeOval(targetX - targetSize, targetY - targetSize, targetSize * 2, targetSize * 2);
+                    gc.setFill(Color.web("#00FFFF", 0.3));
+                    gc.fillOval(targetX - targetSize, targetY - targetSize, targetSize * 2, targetSize * 2);
+                }
+                case 2 -> {
+                    gc.fillText("STEP 2: Press [C] to TRIGGER BORDER INVASION", 20, 100);
+                }
+                case 3 -> {
+                    gc.fillText("STEP 3: Dodge 10 Aimed Bullets (" + tutorialStepCount + "/10)", 20, 100);
+                    // 繪製中間的「怪物」
+                    gc.setFill(Color.RED);
+                    gc.fillRect(gameCanvas.getWidth() / 2 - 20, gameCanvas.getHeight() / 2 - 20, 40, 40);
+                }
+                case 4 -> {
+                    gc.fillText("STEP 4: Dodge 10 Lasers (" + tutorialStepCount + "/10)", 20, 100);
+                    
+                    if (laserWarning) {
+                        gc.setStroke(Color.web("#FF0000", 0.5));
+                        gc.setLineWidth(2);
+                        gc.setLineDashes(10);
+                        if (laserType == 0) { // 垂直
+                            for (double lx : laserPositions) gc.strokeLine(lx, 0, lx, gameCanvas.getHeight());
+                        } else if (laserType == 1) { // 斜率
+                            for (int i = 0; i < laserPositions.size(); i++) {
+                                double sx = laserPositions.get(i);
+                                double slope = laserSlopes.get(i);
+                                gc.strokeLine(sx, 0, sx + slope * gameCanvas.getHeight(), gameCanvas.getHeight());
+                            }
+                        } else { // 圓形
+                            gc.strokeOval(laserPositions.get(0) - 200, laserPositions.get(1) - 200, 400, 400);
+                        }
+                        gc.setLineDashes(0);
+                    }
+                    if (laserActive) {
+                        gc.setFill(Color.web("#FF0000", 0.8));
+                        if (laserType == 0) {
+                            for (double lx : laserPositions) gc.fillRect(lx - 20, 0, 40, gameCanvas.getHeight());
+                        } else if (laserType == 1) {
+                            for (int i = 0; i < laserPositions.size(); i++) {
+                                double sx = laserPositions.get(i);
+                                double slope = laserSlopes.get(i);
+                                // 用多邊形繪製斜鐳射
+                                gc.fillPolygon(new double[]{sx-15, sx+15, sx+slope*gameCanvas.getHeight()+15, sx+slope*gameCanvas.getHeight()-15},
+                                               new double[]{0, 0, gameCanvas.getHeight(), gameCanvas.getHeight()}, 4);
+                            }
+                        } else { // 圓形
+                            gc.setStroke(Color.web("#FF0000", 0.8));
+                            gc.setLineWidth(30);
+                            gc.strokeOval(laserPositions.get(0) - 200, laserPositions.get(1) - 200, 400, 400);
+                        }
+                    }
+                }
+            }
+        }
 
         // 時間暫停視覺效果 (藍色覆蓋層)
         if (System.nanoTime() < timeStopEndTime) {
@@ -446,10 +683,35 @@ public class GameManager {
             case A -> player.setKeyPressed("LEFT", true);
             case RIGHT -> player.setKeyPressed("RIGHT", true);
             case D -> player.setKeyPressed("RIGHT", true);
+            case ESCAPE -> {
+                if (isGameOver || isVictory) {
+                    returnToMenu();
+                } else {
+                    showExitConfirmation();
+                }
+            }
         }
-        if (event.getCode() == KeyCode.ESCAPE && (isGameOver || isVictory)) {
-            returnToMenu();
-        }
+    }
+
+    private void showExitConfirmation() {
+        stop();
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("離開確認");
+            alert.setHeaderText(null);
+            alert.setContentText("確定要離開遊戲嗎？");
+
+            ButtonType okButton = new ButtonType("是", ButtonType.OK.getButtonData());
+            ButtonType noButton = new ButtonType("否", ButtonType.CANCEL.getButtonData());
+            alert.getButtonTypes().setAll(okButton, noButton);
+
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.isPresent() && result.get() == okButton) {
+                returnToMenu();
+            } else {
+                start();
+            }
+        });
     }
 
     public void handleKeyReleased(KeyEvent event) {
@@ -467,6 +729,30 @@ public class GameManager {
                 System.out.println("自動射擊狀態：" + (isAutoShooting ? "開啟" : "關閉"));
             }
             case C -> {
+                if (selectedLevel.equals("TUTORIAL") && tutorialPhase == 2) {
+                    // 階段 2 特殊效果：從螢幕邊框往玩家靠近
+                    double pCX = player.x + player.width / 2;
+                    double pCY = player.y + player.height / 2;
+                    double cw = gameCanvas.getWidth();
+                    double ch = gameCanvas.getHeight();
+                    
+                    // 從四個邊緣生成子彈往玩家射擊
+                    for (int i = 0; i < 10; i++) {
+                        // 上邊緣
+                        spawnBorderBullet(i * (cw / 10), 0, pCX, pCY);
+                        // 下邊緣
+                        spawnBorderBullet(i * (cw / 10), ch, pCX, pCY);
+                        // 左邊緣
+                        spawnBorderBullet(0, i * (ch / 10), pCX, pCY);
+                        // 右邊緣
+                        spawnBorderBullet(cw, i * (ch / 10), pCX, pCY);
+                    }
+                    
+                    tutorialPhase = 3;
+                    tutorialTimer = 0;
+                    tutorialStepCount = 0;
+                    System.out.println("教學關卡：第 3 階段 - 躲避子彈");
+                }
                 if (player != null && player.useBomb()) {
                     if (difficultyMultiplier == 0.5) {
                         System.out.println("[核心呼叫] 消耗 1 次充能，執行 TIME_STOP.EXE：凍結時間 5 秒！");
@@ -483,6 +769,11 @@ public class GameManager {
                 }
             }
         }
+    }
+
+    private void spawnBorderBullet(double sx, double sy, double tx, double ty) {
+        double angle = Math.toDegrees(Math.atan2(ty - sy, tx - sx));
+        enemyBullets.add(new EnemyBullet(sx, sy, 2.0, angle));
     }
 
     private void returnToMenu() {
