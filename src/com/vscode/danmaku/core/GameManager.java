@@ -47,6 +47,7 @@ public class GameManager {
     private final List<GameItem> itemsOnMap = new ArrayList<>();
     private long lastItemSpawnTime = 0;
     private long powerUpEndTime = 0;
+    private long timeStopEndTime = 0;
     private final Random random = new Random();
 
     public GameManager(Canvas gameCanvas) {
@@ -141,8 +142,26 @@ public class GameManager {
         }
 
         // boss & player update
+        boolean isTimeStopped = (now < timeStopEndTime);
+
+        if (!isTimeStopped) {
+            if (forLoopBoss != null && forLoopBoss.isAlive()) {
+                forLoopBoss.update(now, enemyBullets, player.x, player.y);
+            }
+            else if (recursionBoss != null && recursionBoss.isAlive()) {
+                recursionBoss.update(now, enemyBullets, player.x, player.y);
+            }
+            else if (linkedListBoss != null && linkedListBoss.isAlive()) {
+                linkedListBoss.setTargetX(player.x);
+                linkedListBoss.setTargetY(player.y);
+                linkedListBoss.update(now, enemyBullets, player.x, player.y);
+            } else if (binarySearchBoss != null && binarySearchBoss.isAlive()) {
+                binarySearchBoss.update(now, enemyBullet2s, player.x + player.width/2, player.y + player.height/2, cw, ch);
+            }
+        }
+
+        // 碰撞判定 (不論時間是否停止都處理，讓玩家在停止時能造成傷害)
         if (forLoopBoss != null && forLoopBoss.isAlive()) {
-            forLoopBoss.update(now, enemyBullets, player.x, player.y);
             for (Bullet b : playerBullets) {
                 if (b.isAlive()) {
                     if (forLoopBoss.hit(b)) {
@@ -156,7 +175,6 @@ public class GameManager {
             }
         }
         else if (recursionBoss != null && recursionBoss.isAlive()) {
-            recursionBoss.update(now, enemyBullets, player.x, player.y);
             for (Bullet b : playerBullets) {
                 if (b.isAlive()) {
                     if (recursionBoss.hit(b)) {
@@ -170,9 +188,6 @@ public class GameManager {
             }
         }
         else if (linkedListBoss != null && linkedListBoss.isAlive()) {
-            linkedListBoss.setTargetX(player.x);
-            linkedListBoss.setTargetY(player.y);
-            linkedListBoss.update(now, enemyBullets, player.x, player.y);
             for (Bullet b : playerBullets) {
                 if (b.isAlive()) {
                     boolean hit = linkedListBoss.hit(b);
@@ -192,7 +207,6 @@ public class GameManager {
                 isGameOver = true;
             }
         } else if (binarySearchBoss != null && binarySearchBoss.isAlive()) {
-            binarySearchBoss.update(now, enemyBullet2s, player.x + player.width/2, player.y + player.height/2, cw, ch);
             for (Bullet b : playerBullets) {
                 if (b.isAlive()) {
                     if (binarySearchBoss.hit(b)) {
@@ -207,28 +221,38 @@ public class GameManager {
         }
 
         // enemybullets update
-        for (EnemyBullet eb : enemyBullets) {
-            eb.update();
-            if (eb.x < -20 || eb.x > cw + 20 || eb.y < -20 || eb.y > ch + 20) {
-                eb.setAlive(false);
+        if (!isTimeStopped) {
+            for (EnemyBullet eb : enemyBullets) {
+                eb.update();
+                if (eb.x < -20 || eb.x > cw + 20 || eb.y < -20 || eb.y > ch + 20) {
+                    eb.setAlive(false);
+                }
             }
-            if (eb.isAlive() && eb.collidesWithPlayer(player.x, player.y, player.width, player.height)) {
-                player.setAlive(false);
-                isGameOver = true;
+
+            // enemybullet2s update
+            double pCX = player.x + player.width / 2;
+            double pCY = player.y + player.height / 2;
+            for (EnemyBullet2 eb2 : enemyBullet2s) {
+                eb2.update(pCX, pCY);
+                if (eb2.x < -20 || eb2.x > cw + 20 || eb2.y < -20 || eb2.y > ch + 20) {
+                    eb2.setAlive(false);
+                }
             }
         }
 
-        // enemybullet2s update
-        double pCX = player.x + player.width / 2;
-        double pCY = player.y + player.height / 2;
-        for (EnemyBullet2 eb2 : enemyBullet2s) {
-            eb2.update(pCX, pCY);
-            if (eb2.x < -20 || eb2.x > cw + 20 || eb2.y < -20 || eb2.y > ch + 20) {
-                eb2.setAlive(false);
+        // 碰撞玩家判定 (不論時間是否停止都處理)
+        for (EnemyBullet eb : enemyBullets) {
+            if (eb.isAlive() && eb.collidesWithPlayer(player.x, player.y, player.width, player.height)) {
+                player.setAlive(false);
+                isGameOver = true;
+                break;
             }
+        }
+        for (EnemyBullet2 eb2 : enemyBullet2s) {
             if (eb2.isAlive() && eb2.collidesWithPlayer(player.x, player.y, player.width, player.height)) {
                 player.setAlive(false);
                 isGameOver = true;
+                break;
             }
         }
 
@@ -256,6 +280,15 @@ public class GameManager {
         for (EnemyBullet eb : enemyBullets) { eb.draw(gc); }
         for (EnemyBullet2 eb2 : enemyBullet2s) { eb2.draw(gc); }
         if (player != null && player.isAlive()) { player.draw(gc); }
+
+        // 時間暫停視覺效果 (藍色覆蓋層)
+        if (System.nanoTime() < timeStopEndTime) {
+            gc.setFill(Color.web("#00AAFF", 0.15));
+            gc.fillRect(0, 0, gameCanvas.getWidth(), gameCanvas.getHeight());
+            gc.setFill(Color.web("#00AAFF"));
+            gc.setFont(new Font("Monospaced", 24));
+            gc.fillText("<< TIME STOPPED >>", gameCanvas.getWidth() / 2 - 120, 80);
+        }
 
         gc.setFill(Color.LIGHTGRAY);
         gc.setFont(new Font("Monospaced", 18));
@@ -435,13 +468,18 @@ public class GameManager {
             }
             case C -> {
                 if (player != null && player.useBomb()) {
-                    System.out.println("[核心呼叫] 消耗 1 次充能，執行 BOMB.EXE：清空全螢幕敵方子彈！");
-                    for (EnemyBullet eb : enemyBullets) { eb.setAlive(false); }
-                    for (EnemyBullet2 eb2 : enemyBullet2s) { eb2.setAlive(false); }
-                    enemyBullets.clear();
-                    enemyBullet2s.clear();
+                    if (difficultyMultiplier == 0.5) {
+                        System.out.println("[核心呼叫] 消耗 1 次充能，執行 TIME_STOP.EXE：凍結時間 5 秒！");
+                        timeStopEndTime = System.nanoTime() + 5_000_000_000L;
+                    } else {
+                        System.out.println("[核心呼叫] 消耗 1 次充能，執行 BOMB.EXE：清空全螢幕敵方子彈！");
+                        for (EnemyBullet eb : enemyBullets) { eb.setAlive(false); }
+                        for (EnemyBullet2 eb2 : enemyBullet2s) { eb2.setAlive(false); }
+                        enemyBullets.clear();
+                        enemyBullet2s.clear();
+                    }
                 } else {
-                    System.out.println("[警告] 充能不足，無法執行 BOMB.EXE！");
+                    System.out.println("[警告] 充能不足，無法執行技能！");
                 }
             }
         }
