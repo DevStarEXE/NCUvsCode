@@ -2,11 +2,16 @@
   <library name="lib">
     <CLASSES>
       <root url="file://$PROJECT_DIR$/../../../../../../Program Files/Java/javafx-sdk-21.0.10/lib" />
-      <root url="file://$PROJECT_DIR$/../../功課2/Playground JavaFX/javafx-sdk-21.0.11/lib" />
+      <root url="file://C:/Program Files/Java/javafx-sdk-21.0.10/lib" />
+      <root url="file://C:/Program Files/Java/jdk-21.0.10/lib" />
     </CLASSES>
     <JAVADOC />
-    <SOURCES />
+    <SOURCES>
+      <root url="file://C:/Program Files/Java/jdk-21.0.10/lib" />
+    </SOURCES>
+    <jarDirectory url="file://C:/Program Files/Java/javafx-sdk-21.0.10/lib" recursive="false" />
+    <jarDirectory url="file://C:/Program Files/Java/jdk-21.0.10/lib" recursive="false" />
     <jarDirectory url="file://$PROJECT_DIR$/../../../../../../Program Files/Java/javafx-sdk-21.0.10/lib" recursive="false" />
-    <jarDirectory url="file://$PROJECT_DIR$/../../功課2/Playground JavaFX/javafx-sdk-21.0.11/lib" recursive="false" />
+    <jarDirectory url="file://C:/Program Files/Java/jdk-21.0.10/lib" recursive="false" type="SOURCES" />
   </library>
 </component>

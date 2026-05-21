@@ -17,7 +17,7 @@ public class LevelController {
     @FXML
     void handleLevelSelect(ActionEvent event) {
         Button clickedBtn = (Button) event.getSource();
-        String selected = clickedBtn.getText(); // 這裡會抓到 "FOR LOOP"
+        String selected = clickedBtn.getText(); // 這裡會抓到 "FOR LOOP" or "Binary"
 
         System.out.println("準備進入關卡：" + selected);
         startGame(selected, event);
