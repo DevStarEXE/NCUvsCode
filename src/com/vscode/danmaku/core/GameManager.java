@@ -252,9 +252,13 @@ public class GameManager {
     public void handleKeyPressed(KeyEvent event) {
         switch (event.getCode()) {
             case UP -> player.setKeyPressed("UP", true);
+            case W -> player.setKeyPressed("UP", true);
             case DOWN -> player.setKeyPressed("DOWN", true);
+            case S -> player.setKeyPressed("DOWN", true);
             case LEFT -> player.setKeyPressed("LEFT", true);
+            case A -> player.setKeyPressed("LEFT", true);
             case RIGHT -> player.setKeyPressed("RIGHT", true);
+            case D -> player.setKeyPressed("RIGHT", true);
         }
         if (event.getCode() == KeyCode.ESCAPE && (isGameOver || isVictory)) {
             returnToMenu();
@@ -264,9 +268,13 @@ public class GameManager {
     public void handleKeyReleased(KeyEvent event) {
         switch (event.getCode()) {
             case UP -> player.setKeyPressed("UP", false);
+            case W -> player.setKeyPressed("UP", false);
             case DOWN -> player.setKeyPressed("DOWN", false);
+            case S -> player.setKeyPressed("DOWN", false);
             case LEFT -> player.setKeyPressed("LEFT", false);
+            case A -> player.setKeyPressed("LEFT", false);
             case RIGHT -> player.setKeyPressed("RIGHT", false);
+            case D -> player.setKeyPressed("RIGHT", false);
         }
     }
 
