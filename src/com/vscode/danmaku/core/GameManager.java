@@ -4,6 +4,7 @@ import com.vscode.danmaku.core.bosses.BinarySearchBoss;
 import javafx.animation.AnimationTimer;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -332,10 +333,14 @@ public class GameManager {
             double centerY = gameCanvas.getHeight() / 2;
             if (isVictory) {
                 gc.setFill(Color.web("#4CAF50"));
+                gc.setEffect(new DropShadow(30, Color.rgb(76,175,80, 0.7)));
                 gc.fillText("V I C T O R Y", centerX - 190, centerY - 20);
+                gc.setEffect(null);
             } else if (isGameOver) {
                 gc.setFill(Color.web("#F44336"));
+                gc.setEffect(new DropShadow(30, Color.rgb(244, 67, 54, 0.7)));
                 gc.fillText("G A M E  O V E R", centerX - 220, centerY - 20);
+                gc.setEffect(null);
             }
             gc.setFill(Color.WHITE);
             gc.setFont(new Font("Monospaced", 20));
