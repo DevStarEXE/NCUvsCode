@@ -86,9 +86,7 @@ public class GameManager {
         if (player.y < 0) player.y = 0;
         if (player.y > ch - player.height) player.y = ch - player.height;
 
-        if (isSpacePressed()) {
-            player.shoot(now, playerBullets);
-        }
+        player.shoot(now, playerBullets);
 
         // 2. 更新玩家子彈與出界銷毀
         for (Bullet b : playerBullets) {
@@ -252,7 +250,6 @@ public class GameManager {
             case DOWN -> player.setKeyPressed("DOWN", true);
             case LEFT -> player.setKeyPressed("LEFT", true);
             case RIGHT -> player.setKeyPressed("RIGHT", true);
-            case SPACE -> setSpacePressed(true);
         }
         if (event.getCode() == KeyCode.ESCAPE && (isGameOver || isVictory)) {
             returnToMenu();
@@ -265,7 +262,6 @@ public class GameManager {
             case DOWN -> player.setKeyPressed("DOWN", false);
             case LEFT -> player.setKeyPressed("LEFT", false);
             case RIGHT -> player.setKeyPressed("RIGHT", false);
-            case SPACE -> setSpacePressed(false);
         }
     }
 

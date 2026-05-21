@@ -34,7 +34,7 @@ public class ForLoopBoss {
         if (lastShootTime == 0) lastShootTime = now;
 
         // 每 1.5 秒執行一次迴圈攻擊 (1.5億奈秒)
-        if (now - lastShootTime > 2_500_000_000L) {
+        if (now - lastShootTime > 2_000_000_000L) {
             executeNestedLoopAttack(enemyBullets);
             lastShootTime = now;
             iterationCount++;
