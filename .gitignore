@@ -28,3 +28,6 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### 你們忘記ignore /idea了，所以每次都會覆蓋掉lib檔案 ###
+.idea
