@@ -18,6 +18,7 @@ import java.util.Random;
 import com.vscode.danmaku.core.bosses.ForLoopBoss;
 import com.vscode.danmaku.core.bosses.LinkedWorm.LinkedListBoss;
 import com.vscode.danmaku.core.bosses.RecursionBoss;
+import com.vscode.danmaku.core.bosses.BinarySearchBoss;
 
 public class GameManager {
     private boolean isGameOver = false;
@@ -36,7 +37,10 @@ public class GameManager {
     private LinkedListBoss linkedListBoss;
     private ForLoopBoss forLoopBoss;
     private RecursionBoss recursionBoss;
+    private BinarySearchBoss binarySearchBoss;
+    
     private final List<EnemyBullet> enemyBullets = new ArrayList<>();
+    private final List<EnemyBullet2> enemyBullet2s = new ArrayList<>();
 
     private boolean isAutoShooting = true;
 
@@ -68,6 +72,9 @@ public class GameManager {
         } else if (selectedLevel.equals("RECURSION")) {
             recursionBoss = new RecursionBoss();
             System.out.println("生成 Recursion Boss");
+        } else if (selectedLevel.equals("BINARY SEARCH")) {
+            binarySearchBoss = new BinarySearchBoss();
+            System.out.println("生成 Binary Search Boss");
         } else if (selectedLevel.equals("LINKED LIST")) {
             linkedListBoss = new LinkedListBoss(400.0, 100.0);
             System.out.println("生成 LinkedList Boss");
@@ -133,7 +140,7 @@ public class GameManager {
             }
         }
 
-        // --- 修改：大幅降低命中充能的速度 ---
+        // boss & player update
         if (forLoopBoss != null && forLoopBoss.isAlive()) {
             forLoopBoss.update(now, enemyBullets, player.x, player.y);
             for (Bullet b : playerBullets) {
@@ -143,7 +150,7 @@ public class GameManager {
                         isVictory = true;
                     } else if (!b.isAlive()) {
                         score += 15;
-                        player.addCharge(5.0); // 原本 20，改為 5 (約需命中 200 發才能滿)
+                        player.addCharge(5.0);
                     }
                 }
             }
@@ -153,7 +160,7 @@ public class GameManager {
             for (Bullet b : playerBullets) {
                 if (b.isAlive()) {
                     if (recursionBoss.hit(b)) {
-                        score += 3000;
+                        score += 5000;
                         isVictory = true;
                     } else if (!b.isAlive()) {
                         score += 15;
@@ -171,11 +178,11 @@ public class GameManager {
                     boolean hit = linkedListBoss.hit(b);
                     if (hit) {
                         if (!linkedListBoss.isAlive()) {
-                            score += 1000;
+                            score += 5000;
                             isVictory = true;
                         }
-                    } else if (!b.isAlive()) { // 這邊保留您原本增加充能的邏輯
-                        score += 10;
+                    } else if (!b.isAlive()) {
+                        score += 15;
                         player.addCharge(5.0);
                     }
                 }
@@ -184,25 +191,50 @@ public class GameManager {
                 player.setAlive(false);
                 isGameOver = true;
             }
+        } else if (binarySearchBoss != null && binarySearchBoss.isAlive()) {
+            binarySearchBoss.update(now, enemyBullet2s, player.x + player.width/2, player.y + player.height/2, cw, ch);
+            for (Bullet b : playerBullets) {
+                if (b.isAlive()) {
+                    if (binarySearchBoss.hit(b)) {
+                        score += 5000;
+                        isVictory = true;
+                    } else if (!b.isAlive()) {
+                        score += 15;
+                        player.addCharge(5.0);
+                    }
+                }
+            }
         }
 
+        // enemybullets update
         for (EnemyBullet eb : enemyBullets) {
             eb.update();
             if (eb.x < -20 || eb.x > cw + 20 || eb.y < -20 || eb.y > ch + 20) {
                 eb.setAlive(false);
             }
-        }
-
-        for (EnemyBullet eb : enemyBullets) {
             if (eb.isAlive() && eb.collidesWithPlayer(player.x, player.y, player.width, player.height)) {
                 player.setAlive(false);
                 isGameOver = true;
-                break;
+            }
+        }
+
+        // enemybullet2s update
+        double pCX = player.x + player.width / 2;
+        double pCY = player.y + player.height / 2;
+        for (EnemyBullet2 eb2 : enemyBullet2s) {
+            eb2.update(pCX, pCY);
+            if (eb2.x < -20 || eb2.x > cw + 20 || eb2.y < -20 || eb2.y > ch + 20) {
+                eb2.setAlive(false);
+            }
+            if (eb2.isAlive() && eb2.collidesWithPlayer(player.x, player.y, player.width, player.height)) {
+                player.setAlive(false);
+                isGameOver = true;
             }
         }
 
         playerBullets.removeIf(b -> !b.isAlive());
         enemyBullets.removeIf(eb -> !eb.isAlive());
+        enemyBullet2s.removeIf(eb2 -> !eb2.isAlive());
     }
 
     private void draw(GraphicsContext gc) {
@@ -212,6 +244,7 @@ public class GameManager {
         if (forLoopBoss != null) forLoopBoss.draw(gc);
         if (recursionBoss != null) recursionBoss.draw(gc);
         if (linkedListBoss != null) linkedListBoss.draw(gc);
+        if (binarySearchBoss != null) binarySearchBoss.draw(gc);
 
         drawBossHealthBar(gc);
 
@@ -221,18 +254,16 @@ public class GameManager {
 
         for (Bullet b : playerBullets) { b.draw(gc); }
         for (EnemyBullet eb : enemyBullets) { eb.draw(gc); }
+        for (EnemyBullet2 eb2 : enemyBullet2s) { eb2.draw(gc); }
         if (player != null && player.isAlive()) { player.draw(gc); }
 
         gc.setFill(Color.LIGHTGRAY);
         gc.setFont(new Font("Monospaced", 18));
         gc.fillText("SCORE: " + String.format("%05d", score), 20, 30);
 
-        // ==========================================
-        // 修改：精簡版的左下角充能 UI (因為上限只有 1)
-        // ==========================================
+        // 左下角充能 UI
         double uiX = 20;
         double uiY = gameCanvas.getHeight() - 25;
-
         gc.setStroke(Color.web("#555555"));
         gc.setLineWidth(1.5);
         gc.strokeRect(uiX, uiY - 22, 160, 30);
@@ -242,46 +273,34 @@ public class GameManager {
         if (player != null) {
             int bombs = player.getBombCount();
             double progress = player.getChargeProgress();
-
             if (bombs >= player.getMaxBombs()) {
-                // 滿充能 (1次)，直接顯示 READY
                 gc.setFill(Color.web("#FFD700"));
                 gc.fillRect(uiX + 2, uiY - 20, 156, 26);
-
                 gc.setFill(Color.BLACK);
                 gc.setFont(javafx.scene.text.Font.font("Monospaced", javafx.scene.text.FontWeight.BOLD, 12));
                 gc.fillText("[C] BOMB READY!", uiX + 10, uiY - 2);
             } else {
-                // 充能中 (0次)，顯示藍色條與百分比
                 gc.setFill(Color.web("#007ACC"));
                 gc.fillRect(uiX + 2, uiY - 20, 156 * progress, 26);
-
                 gc.setFill(Color.WHITE);
                 gc.setFont(javafx.scene.text.Font.font("Monospaced", 12));
                 gc.fillText("[C] CHARGING " + (int)(progress * 100) + "%", uiX + 10, uiY - 2);
             }
         }
 
+        // 右下角武器模式 UI
         double modeUiX = gameCanvas.getWidth() - 130;
         double modeUiY = gameCanvas.getHeight() - 25;
-
         gc.setFill(Color.web("#888888"));
         gc.setFont(new Font("Monospaced", 11));
         gc.fillText("WEAPON_WEAVE:", modeUiX, modeUiY - 2);
-
         int currentMode = (player != null) ? player.getFireMode() : 0;
         Color activeDotColor = (player != null && player.getActiveBuffColor() != null)
                 ? player.getActiveBuffColor() : Color.web("#007ACC");
-
         double dotStartX = modeUiX + 90;
         double dotY = modeUiY - 10;
-
         for (int i = 0; i < 3; i++) {
-            if (i == currentMode) {
-                gc.setFill(activeDotColor);
-            } else {
-                gc.setFill(Color.web("#444444"));
-            }
+            gc.setFill(i == currentMode ? activeDotColor : Color.web("#444444"));
             gc.fillOval(dotStartX + (i * 12), dotY, 7, 7);
         }
 
@@ -352,6 +371,20 @@ public class GameManager {
             gc.setFill(Color.WHITE);
             gc.setFont(new Font("Monospaced", 11));
             gc.fillText(String.format("RECURSION: Base Case  %d/%d  %d%%", currentHp, maxHp, percent), barX, barY - 8);
+        } else if (binarySearchBoss != null && binarySearchBoss.isAlive()) {
+            gc.setFill(Color.web("#333333"));
+            gc.fillRect(barX, barY, barWidth, barHeight);
+            int currentHp = binarySearchBoss.getHp();
+            int maxHp = binarySearchBoss.getMaxHp();
+            double hpRatio = (double) currentHp / maxHp;
+            int percent = (int)(hpRatio * 100);
+            gc.setFill(Color.web("#00FF66"));
+            gc.fillRect(barX, barY, barWidth * hpRatio, barHeight);
+            gc.setStroke(Color.web("#888888"));
+            gc.strokeRect(barX, barY, barWidth, barHeight);
+            gc.setFill(Color.web("#00FF66"));
+            gc.setFont(new Font("Monospaced", 11));
+            gc.fillText(String.format("[SEARCH] BOSS: BINARY_SEARCH  %d/%d  %d%%", currentHp, maxHp, percent), barX, barY - 8);
         }
         else if (linkedListBoss != null && linkedListBoss.isAlive()) {
             gc.setFill(Color.web("#333333"));
@@ -396,17 +429,17 @@ public class GameManager {
             case A -> player.setKeyPressed("LEFT", false);
             case RIGHT -> player.setKeyPressed("RIGHT", false);
             case D -> player.setKeyPressed("RIGHT", false);
-
             case SPACE -> {
                 isAutoShooting = !isAutoShooting;
                 System.out.println("自動射擊狀態：" + (isAutoShooting ? "開啟" : "關閉"));
             }
-
             case C -> {
                 if (player != null && player.useBomb()) {
                     System.out.println("[核心呼叫] 消耗 1 次充能，執行 BOMB.EXE：清空全螢幕敵方子彈！");
                     for (EnemyBullet eb : enemyBullets) { eb.setAlive(false); }
+                    for (EnemyBullet2 eb2 : enemyBullet2s) { eb2.setAlive(false); }
                     enemyBullets.clear();
+                    enemyBullet2s.clear();
                 } else {
                     System.out.println("[警告] 充能不足，無法執行 BOMB.EXE！");
                 }
