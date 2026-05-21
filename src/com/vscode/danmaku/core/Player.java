@@ -24,7 +24,7 @@ public class Player extends GameObject {
     private final double MAX_CHARGE = 1000.0;
 
     public Player(double x, double y) {
-        super(x, y, 32, 32);
+        super(x, y, 16, 16);
     }
 
     public void addCharge(double amount) {
@@ -72,11 +72,15 @@ public class Player extends GameObject {
         Color drawColor = (activeBuffColor != null) ? activeBuffColor : Color.web("#007ACC");
 
         gc.setStroke(drawColor);
-        gc.setLineWidth(3);
+        gc.setLineWidth(2);
         gc.strokeRect(x, y, width, height);
 
         gc.strokeLine(x, y + height / 2, x + width, y + height / 2);
         gc.strokeLine(x + width / 2, y, x + width / 2, y + height);
+
+        // 繪製判定核心 (Hitbox) - 彈幕遊戲常見的小點
+        gc.setFill(Color.RED);
+        gc.fillOval(x + width / 2 - 2, y + height / 2 - 2, 4, 4);
     }
 
     public void shoot(long now, List<Bullet> bullets) {

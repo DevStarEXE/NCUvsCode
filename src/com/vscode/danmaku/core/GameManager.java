@@ -67,9 +67,11 @@ public class GameManager {
         } else if (selectedLevel.equals("RECURSION")) {
             recursionBoss = new RecursionBoss();
             System.out.println("生成 Recursion Boss");
-        } else {
+        } else if (selectedLevel.equals("LINKED LIST")) {
             linkedListBoss = new LinkedListBoss(400.0, 100.0);
             System.out.println("生成 LinkedList Boss");
+        } else {
+            System.out.println("未知關卡或是尚未實作: " + selectedLevel);
         }
     }
 

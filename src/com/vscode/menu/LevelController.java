@@ -23,14 +23,6 @@ public class LevelController {
         startGame(selected, event);
     }
 
-    @FXML
-    void handleBossSelect(ActionEvent event) {
-        System.out.println("警告！準備載入 LinkedList 蠕蟲 BOSS 戰！");
-
-        // 把 event 一併傳進去
-        startGame("BOSS", event);
-    }
-
     /**
      * 更新後的 startGame 方法：負責把選單視窗切換成遊戲視窗
      */

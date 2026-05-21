@@ -32,11 +32,16 @@ public class EnemyBullet {
     public boolean isAlive() { return isAlive; }
     public void setAlive(boolean alive) { this.isAlive = alive; }
 
-    // 簡單的圓形碰撞偵測 (傳入玩家的中心點與半徑)
+    // 簡單的圓形碰撞偵測 (傳入玩家的中心點與寬高)
     public boolean collidesWithPlayer(double px, double py, double pWidth, double pHeight) {
         double pCenterX = px + pWidth / 2;
         double pCenterY = py + pHeight / 2;
         double distance = Math.sqrt(Math.pow(x - pCenterX, 2) + Math.pow(y - pCenterY, 2));
-        return distance < (radius + pWidth / 2 - 5); // -5 是給玩家一點碰撞寬容度 (Hitbox 變小)
+        
+        // 玩家的真實 Hitbox 改為半徑 2.0 的小圓 (總寬度 4)，這符合一般彈幕遊戲的設定
+        double playerHitboxRadius = 2.0;
+        
+        // 如果子彈圓心到玩家圓心的距離，小於兩者半徑相加，即為碰撞
+        return distance < (radius + playerHitboxRadius);
     }
 }

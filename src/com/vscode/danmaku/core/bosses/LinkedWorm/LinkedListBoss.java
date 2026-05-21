@@ -173,18 +173,17 @@ public class LinkedListBoss extends GameObject {
             
             // 每 0.4 秒發射一次 (4億奈秒)
             if (now - lastShotTime > 400_000_000L) {
-                // 每次發射都重新瞄準玩家
-                double centerAngle = Math.toDegrees(Math.atan2(playerY - y, playerX - x));
+                // 放射發射「長度」數量的子彈
+                int bulletCount = nodes.size();
+                double angleStep = 360.0 / bulletCount; 
                 
-                // 設定擴散角度間距 (每次發射一個小範圍的擴散波)
-                int spreadCount = 5; // 每波 5 顆子彈
-                double angleStep = 15.0; 
-                double startAngle = centerAngle - (spreadCount - 1) * angleStep / 2.0;
+                // 讓每一波的起始角度稍微偏移，形成交錯的彈幕網
+                double startAngle = shotsFired * (angleStep / 2.0);
 
-                for (int i = 0; i < spreadCount; i++) {
+                for (int i = 0; i < bulletCount; i++) {
                     double angle = startAngle + i * angleStep;
                     // 以頭部為中心發射
-                    enemyBullets.add(new EnemyBullet(x + 10, y + 10, 5.0, angle));
+                    enemyBullets.add(new EnemyBullet(x + 10, y + 10, 4.5, angle));
                 }
                 
                 shotsFired++;
