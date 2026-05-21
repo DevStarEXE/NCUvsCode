@@ -13,7 +13,7 @@ public class ForLoopBoss {
 
     // 三層獨立血量
     private int hpK = 0; // 最外層 k
-    private int hpJ = 0; // 中間層 j
+    private int hpJ = 10; // 中間層 j
     private int hpI = 150; // 最內層 i (核心)
 
     private boolean kAlive = true;
