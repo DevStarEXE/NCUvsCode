@@ -51,8 +51,8 @@ public class ForLoopBoss {
     public void update(long now, List<EnemyBullet> enemyBullets, List<EnemyLaser> enemyLasers, double playerX, double playerY) {
         if (!isAlive) return;
 
-        // 1. Movement: Stop during the entire Sniper process (Aiming + Firing bursts)
-        boolean isSniperBusy = isSniperAiming || jBurstRemaining > 0;
+        // 1. Movement: Stop only during Sniper aiming
+        boolean isSniperBusy = isSniperAiming;
         if (!isSniperBusy) {
             x += vx;
             double margin = 50 + (phase * 20);

@@ -36,8 +36,16 @@ public class LevelController {
 
         try {
             // 切換至遊戲主程式
-            com.vscode.danmaku.Main gameApp = new com.vscode.danmaku.Main();
-            gameApp.start(stage);
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/vscode/danmaku/GameInterface.fxml"));
+            javafx.scene.Parent root = loader.load();
+
+            Scene scene = new Scene(root);
+            scene.getStylesheets().add(getClass().getResource("/com/vscode/danmaku/style.css").toExternalForm()); // 加載 CSS
+
+            stage.setTitle("Microsoft VS Code: Danmaku Debugger");
+            stage.setScene(scene);
+            stage.setResizable(false);
+            stage.show();
         } catch (Exception e) {
             e.printStackTrace();
         }
