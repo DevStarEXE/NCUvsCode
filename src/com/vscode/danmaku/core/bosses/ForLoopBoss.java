@@ -51,8 +51,9 @@ public class ForLoopBoss {
     public void update(long now, List<EnemyBullet> enemyBullets, List<EnemyLaser> enemyLasers, double playerX, double playerY) {
         if (!isAlive) return;
 
-        // 1. Movement: Stop ONLY during the warning/aiming phase. Resume during firing (bursts).
-        if (!isSniperAiming) {
+        // 1. Movement: Stop during the entire Sniper process (Aiming + Firing bursts)
+        boolean isSniperBusy = isSniperAiming || jBurstRemaining > 0;
+        if (!isSniperBusy) {
             x += vx;
             double margin = 50 + (phase * 20);
             if (x < margin || x > 750 - width - margin) {
@@ -123,20 +124,21 @@ public class ForLoopBoss {
 
         if (isSniperAiming) {
             long aimDuration = now - sniperAimStartTime;
-            sniperAimProgress = (double) aimDuration / 1_500_000_000L; // 1.5 seconds aim
+            sniperAimProgress = (double) aimDuration / 3_000_000_000L; // Total 3 seconds process
 
             if (sniperAimProgress < 1.0) {
-                // Warning phase: 0.0 - 0.7 tracking, 0.7 - 1.0 locked
-                if (sniperAimProgress < 0.7) {
+                // Tracking stage (0.0 - 0.66): Warning line follows player for ~2 seconds
+                if (sniperAimProgress < 0.66) {
                     double dist = Math.hypot(playerX - sniperStartX, playerY - sniperStartY);
-                    double sniperSpeed = 15.0;
+                    double sniperSpeed = 18.0;
                     double framesToHit = dist / sniperSpeed;
                     double predictedX = playerX + (pvx * framesToHit);
                     double predictedY = playerY + (pvy * framesToHit);
                     sniperAimAngle = Math.toDegrees(Math.atan2(predictedY - sniperStartY, predictedX - sniperStartX));
                     lockedSniperAngle = sniperAimAngle;
-                } else {
-                    // Locked stage
+                } 
+                // Charging/Locked stage (0.66 - 1.0): Line stops for ~1 second
+                else {
                     sniperAimAngle = lockedSniperAngle;
                 }
             } else {
@@ -242,13 +244,13 @@ public class ForLoopBoss {
 
         // Draw sniper line if aiming
         if (isSniperAiming) {
-            double lineWidth = 5 * (1.0 - sniperAimProgress) + 1;
+            double lineWidth = 5 * (1.0 - sniperAimProgress) + 2;
             if (sniperAimProgress >= 0.7) { // Sync with locked phase
-                gc.setStroke(Color.web("#FF0000", 0.9));
+                gc.setStroke(Color.web("#00FFFF", 1.0)); // Cyan for Locked
                 gc.setLineDashes();
             } else {
-                gc.setStroke(Color.web("#FF4444", 0.4));
-                gc.setLineDashes(10, 10);
+                gc.setStroke(Color.web("#FFFF00", 0.8)); // Yellow for Tracking
+                gc.setLineDashes(15, 10);
             }
             gc.setLineWidth(lineWidth);
             

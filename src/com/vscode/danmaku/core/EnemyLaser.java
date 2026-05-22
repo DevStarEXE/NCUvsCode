@@ -9,11 +9,15 @@ public class EnemyLaser {
     public double endX, endY;
     
     private long startTime;
-    private long warningDuration = 1000_000_000L; // 1 second warning
-    private long activeDuration = 500_000_000L;  // 0.5 second active
+    private long warningDuration = 800_000_000L; // Reduced to 0.8s for performance
+    private long activeDuration = 300_000_000L;  // Reduced to 0.3s for performance
     
     private boolean isActive = false;
     private boolean isFinished = false;
+
+    // Cache polygon arrays to reduce GC pressure
+    private final double[] polyX = new double[4];
+    private final double[] polyY = new double[4];
     
     public EnemyLaser(double startX, double startY, double targetX, double targetY, long now) {
         this.startX = startX;
@@ -52,10 +56,22 @@ public class EnemyLaser {
         if (isFinished) return;
 
         if (!isActive) {
-            // Draw warning line
-            gc.setStroke(Color.web("#FF0000", 0.4));
-            gc.setLineWidth(1);
-            gc.setLineDashes(10);
+            // Draw warning area (translucent fill) - Switched to Yellow for contrast
+            gc.setFill(Color.web("#FFFF00", 0.15));
+            double width = 10;
+            double angle = Math.atan2(endY - startY, endX - startX);
+            double dx = Math.sin(angle) * width / 2;
+            double dy = Math.cos(angle) * width / 2;
+            
+            // Optimization: reuse arrays to reduce GC pressure
+            polyX[0] = startX - dx; polyX[1] = startX + dx; polyX[2] = endX + dx; polyX[3] = endX - dx;
+            polyY[0] = startY + dy; polyY[1] = startY - dy; polyY[2] = endY - dy; polyY[3] = endY + dy;
+            gc.fillPolygon(polyX, polyY, 4);
+
+            // Draw warning line (center line) - Switched to Yellow
+            gc.setStroke(Color.web("#FFFF00", 0.8));
+            gc.setLineWidth(2);
+            gc.setLineDashes(15, 10);
             gc.strokeLine(startX, startY, endX, endY);
             gc.setLineDashes(0);
         } else {

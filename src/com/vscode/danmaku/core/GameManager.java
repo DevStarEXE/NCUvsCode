@@ -191,8 +191,12 @@ public class GameManager {
                         laserPositions.clear();
                         laserSlopes.clear();
                         
-                        // 隨機決定模式
-                        laserType = random.nextInt(3); 
+                        // 隨機決定模式 (降低圓形機率: 0: 45%, 1: 45%, 2: 10%)
+                        int rand = random.nextInt(100);
+                        if (rand < 45) laserType = 0;
+                        else if (rand < 90) laserType = 1;
+                        else laserType = 2;
+
                         if (laserType == 0) { // 垂直模式 (至少 5 條)
                             int count = 5 + random.nextInt(3);
                             for (int i = 0; i < count; i++) {
@@ -493,9 +497,9 @@ public class GameManager {
                     gc.fillText("STEP 4: Dodge 10 Lasers (" + tutorialStepCount + "/10)", 20, 100);
                     
                     if (laserWarning) {
-                        gc.setStroke(Color.web("#FF0000", 0.5));
-                        gc.setLineWidth(2);
-                        gc.setLineDashes(10);
+                        gc.setStroke(Color.web("#FFFF00", 0.8)); // Yellow for Tutorial Warning
+                        gc.setLineWidth(4);
+                        gc.setLineDashes(15, 10);
                         if (laserType == 0) { // 垂直
                             for (double lx : laserPositions) gc.strokeLine(lx, 0, lx, gameCanvas.getHeight());
                         } else if (laserType == 1) { // 斜率

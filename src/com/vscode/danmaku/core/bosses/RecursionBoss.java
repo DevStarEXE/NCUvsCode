@@ -90,7 +90,10 @@ public class RecursionBoss {
                 if (node.splitCount == 3) {
                     // 檢查是否是在牆壁附近消失 (GameManager 的邊界是 -20 到 cw+20)
                     if (node.bullet.x <= 0 || node.bullet.x >= cw || node.bullet.y <= 0 || node.bullet.y >= ch) {
-                        enemyLasers.add(new EnemyLaser(node.bullet.x, node.bullet.y, playerX, playerY, now));
+                        // 效能優化：限制場上同時存在的遞迴鐳射數量
+                        if (enemyLasers.size() < 8) {
+                            enemyLasers.add(new EnemyLaser(node.bullet.x, node.bullet.y, playerX, playerY, now));
+                        }
                     }
                 }
                 iterator.remove();
