@@ -46,6 +46,7 @@ public class GameManager {
     
     private final List<EnemyBullet> enemyBullets = new ArrayList<>();
     private final List<EnemyBullet2> enemyBullet2s = new ArrayList<>();
+    private final List<EnemyLaser> recursionLasers = new ArrayList<>();
 
     private boolean isAutoShooting = true;
 
@@ -308,7 +309,7 @@ public class GameManager {
                 forLoopBoss.update(now, enemyBullets, player.x, player.y);
             }
             else if (recursionBoss != null && recursionBoss.isAlive()) {
-                recursionBoss.update(now, enemyBullets, player.x, player.y);
+                recursionBoss.update(now, enemyBullets, recursionLasers, player.x + player.width/2, player.y + player.height/2, cw, ch);
             }
             else if (linkedListBoss != null && linkedListBoss.isAlive()) {
                 linkedListBoss.setTargetX(player.x);
@@ -430,6 +431,17 @@ public class GameManager {
         playerBullets.removeIf(b -> !b.isAlive());
         enemyBullets.removeIf(eb -> !eb.isAlive());
         enemyBullet2s.removeIf(eb2 -> !eb2.isAlive());
+
+        // recursion lasers update and collision
+        for (EnemyLaser el : recursionLasers) {
+            el.update(now);
+            if (el.collidesWithPlayer(player.x, player.y, player.width, player.height)) {
+                player.setAlive(false);
+                isGameOver = true;
+                break;
+            }
+        }
+        recursionLasers.removeIf(el -> el.isFinished());
     }
 
     private void draw(GraphicsContext gc) {
@@ -450,6 +462,7 @@ public class GameManager {
         for (Bullet b : playerBullets) { b.draw(gc); }
         for (EnemyBullet eb : enemyBullets) { eb.draw(gc); }
         for (EnemyBullet2 eb2 : enemyBullet2s) { eb2.draw(gc); }
+        for (EnemyLaser el : recursionLasers) { el.draw(gc); }
         if (player != null && player.isAlive()) { player.draw(gc); }
 
         // 教學關卡視覺元素與文字提示

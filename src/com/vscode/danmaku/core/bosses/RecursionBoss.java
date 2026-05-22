@@ -1,5 +1,6 @@
 package com.vscode.danmaku.core.bosses;
 
+import com.vscode.danmaku.core.EnemyLaser;
 import com.vscode.danmaku.core.EnemyBullet;
 import com.vscode.danmaku.core.Bullet;
 import javafx.scene.canvas.GraphicsContext;
@@ -40,15 +41,19 @@ public class RecursionBoss {
     public RecursionBoss() {
     }
 
-    public void update(long now, List<EnemyBullet> enemyBullets, double playerX, double playerY) {
+    public void update(long now, List<EnemyBullet> enemyBullets, List<EnemyLaser> enemyLasers, double playerX, double playerY, double cw, double ch) {
         if (!isAlive) return;
 
         // 移動邏輯
         x += vx;
-        if (x < 50 || x > 750 - width) {
+        if (x < 50 || x > cw - width - 50) {
             vx = -vx;
         }
 
+        skill1(now, enemyBullets, enemyLasers, playerX, playerY, cw, ch);
+    }
+
+    private void skill1(long now, List<EnemyBullet> enemyBullets, List<EnemyLaser> enemyLasers, double playerX, double playerY, double cw, double ch) {
         // 發射大子彈邏輯
         if (lastShootTime == 0) {
             lastShootTime = now;
@@ -81,6 +86,13 @@ public class RecursionBoss {
             
             // 若子彈已死 (被清屏或飛出界)，移除節點
             if (!node.bullet.isAlive() || !enemyBullets.contains(node.bullet)) {
+                // 如果是最小的子彈且是因為飛出界而消失，則發射鐳射
+                if (node.splitCount == 3) {
+                    // 檢查是否是在牆壁附近消失 (GameManager 的邊界是 -20 到 cw+20)
+                    if (node.bullet.x <= 0 || node.bullet.x >= cw || node.bullet.y <= 0 || node.bullet.y >= ch) {
+                        enemyLasers.add(new EnemyLaser(node.bullet.x, node.bullet.y, playerX, playerY, now));
+                    }
+                }
                 iterator.remove();
                 continue;
             }

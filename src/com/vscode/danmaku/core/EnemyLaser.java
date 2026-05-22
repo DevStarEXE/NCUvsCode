@@ -1,0 +1,117 @@
+package com.vscode.danmaku.core;
+
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
+
+public class EnemyLaser {
+    public double startX, startY;
+    public double targetX, targetY;
+    public double endX, endY;
+    
+    private long startTime;
+    private long warningDuration = 1000_000_000L; // 1 second warning
+    private long activeDuration = 500_000_000L;  // 0.5 second active
+    
+    private boolean isActive = false;
+    private boolean isFinished = false;
+    
+    public EnemyLaser(double startX, double startY, double targetX, double targetY, long now) {
+        this.startX = startX;
+        this.startY = startY;
+        this.targetX = targetX;
+        this.targetY = targetY;
+        this.startTime = now;
+        
+        // Calculate endX, endY to extend far beyond the screen
+        double dx = targetX - startX;
+        double dy = targetY - startY;
+        double length = Math.sqrt(dx * dx + dy * dy);
+        if (length == 0) {
+            dx = 0;
+            dy = 1;
+            length = 1;
+        }
+        // Extend to a large distance
+        double extend = 2000;
+        this.endX = startX + (dx / length) * extend;
+        this.endY = startY + (dy / length) * extend;
+    }
+
+    public void update(long now) {
+        long elapsed = now - startTime;
+        if (elapsed < warningDuration) {
+            isActive = false;
+        } else if (elapsed < warningDuration + activeDuration) {
+            isActive = true;
+        } else {
+            isFinished = true;
+        }
+    }
+
+    public void draw(GraphicsContext gc) {
+        if (isFinished) return;
+
+        if (!isActive) {
+            // Draw warning line
+            gc.setStroke(Color.web("#FF0000", 0.4));
+            gc.setLineWidth(1);
+            gc.setLineDashes(10);
+            gc.strokeLine(startX, startY, endX, endY);
+            gc.setLineDashes(0);
+        } else {
+            // Draw active laser
+            gc.setStroke(Color.web("#FF0000", 0.8));
+            gc.setLineWidth(10);
+            gc.strokeLine(startX, startY, endX, endY);
+            
+            // Add a core white line for intensity
+            gc.setStroke(Color.WHITE);
+            gc.setLineWidth(2);
+            gc.strokeLine(startX, startY, endX, endY);
+        }
+    }
+
+    public boolean collidesWithPlayer(double px, double py, double pw, double ph) {
+        if (!isActive || isFinished) return false;
+
+        double pCX = px + pw / 2;
+        double pCY = py + ph / 2;
+        
+        // Point-to-line distance
+        // Line from (startX, startY) to (endX, endY)
+        double dist = pointToLineDistance(pCX, pCY, startX, startY, endX, endY);
+        
+        return dist < (pw / 4 + 5); // Rough collision check for laser width
+    }
+
+    private double pointToLineDistance(double px, double py, double x1, double y1, double x2, double y2) {
+        double A = px - x1;
+        double B = py - y1;
+        double C = x2 - x1;
+        double D = y2 - y1;
+
+        double dot = A * C + B * D;
+        double len_sq = C * C + D * D;
+        double param = -1;
+        if (len_sq != 0) param = dot / len_sq;
+
+        double xx, yy;
+
+        if (param < 0) {
+            xx = x1;
+            yy = y1;
+        } else if (param > 1) {
+            xx = x2;
+            yy = y2;
+        } else {
+            xx = x1 + param * C;
+            yy = y1 + param * D;
+        }
+
+        double dx = px - xx;
+        double dy = py - yy;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    public boolean isFinished() { return isFinished; }
+}
