@@ -306,7 +306,7 @@ public class GameManager {
 
         if (!isTimeStopped) {
             if (forLoopBoss != null && forLoopBoss.isAlive()) {
-                forLoopBoss.update(now, enemyBullets, player.x, player.y);
+                forLoopBoss.update(now, enemyBullets, recursionLasers, player.x, player.y);
             }
             else if (recursionBoss != null && recursionBoss.isAlive()) {
                 recursionBoss.update(now, enemyBullets, recursionLasers, player.x + player.width/2, player.y + player.height/2, cw, ch);
@@ -618,24 +618,32 @@ public class GameManager {
             gc.fillRect(barX, barY, barWidth, barHeight);
             double hpRatio;
             int currentHp, maxHp, percent;
-            if (forLoopBoss.isKAlive()) {
-                currentHp = forLoopBoss.getHpK(); maxHp = forLoopBoss.getMaxHpK();
+            int phase = forLoopBoss.getPhase();
+            
+            if (phase == 1) {
+                currentHp = forLoopBoss.getHpI(); maxHp = forLoopBoss.getMaxHpI();
                 hpRatio = (double) currentHp / maxHp; percent = (int)(hpRatio * 100);
-                gc.setFill(Color.web("#FF00FF"));
+                gc.setFill(Color.web("#00FF00"));
                 gc.fillRect(barX, barY, barWidth * hpRatio, barHeight);
-                gc.fillText(String.format("[COMPILING] NESTED_LOOP: Layer_K (Shielding)  %d/%d  %d%%", currentHp, maxHp, percent), barX, barY - 8);
-            } else if (forLoopBoss.isJAlive()) {
+                gc.setFill(Color.WHITE);
+                gc.setFont(new Font("Monospaced", 11));
+                gc.fillText(String.format("[COMPILING] NESTED_LOOP: Core_I  %d/%d  %d%%", currentHp, maxHp, percent), barX, barY - 8);
+            } else if (phase == 2) {
                 currentHp = forLoopBoss.getHpJ(); maxHp = forLoopBoss.getMaxHpJ();
                 hpRatio = (double) currentHp / maxHp; percent = (int)(hpRatio * 100);
                 gc.setFill(Color.web("#00FFFF"));
                 gc.fillRect(barX, barY, barWidth * hpRatio, barHeight);
-                gc.fillText(String.format("[COMPILING] NESTED_LOOP: Layer_J (Warning)  %d/%d  %d%%", currentHp, maxHp, percent), barX, barY - 8);
+                gc.setFill(Color.WHITE);
+                gc.setFont(new Font("Monospaced", 11));
+                gc.fillText(String.format("[EVOLVING] NESTED_LOOP: Layer_J  %d/%d  %d%%", currentHp, maxHp, percent), barX, barY - 8);
             } else {
-                currentHp = forLoopBoss.getHpI(); maxHp = forLoopBoss.getMaxHpI();
+                currentHp = forLoopBoss.getHpK(); maxHp = forLoopBoss.getMaxHpK();
                 hpRatio = (double) currentHp / maxHp; percent = (int)(hpRatio * 100);
-                gc.setFill(Color.web("#FF3333"));
+                gc.setFill(Color.web("#FF00FF"));
                 gc.fillRect(barX, barY, barWidth * hpRatio, barHeight);
-                gc.fillText(String.format("[OVERLOAD] NESTED_LOOP: Core_I (Critical)  %d/%d  %d%%", currentHp, maxHp, percent), barX, barY - 8);
+                gc.setFill(Color.WHITE);
+                gc.setFont(new Font("Monospaced", 11));
+                gc.fillText(String.format("[FINALIZING] NESTED_LOOP: Layer_K  %d/%d  %d%%", currentHp, maxHp, percent), barX, barY - 8);
             }
             gc.setStroke(Color.web("#888888"));
             gc.strokeRect(barX, barY, barWidth, barHeight);

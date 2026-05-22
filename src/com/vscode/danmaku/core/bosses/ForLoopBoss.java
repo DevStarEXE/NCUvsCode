@@ -2,6 +2,7 @@ package com.vscode.danmaku.core.bosses;
 
 import com.vscode.danmaku.core.EnemyBullet;
 import com.vscode.danmaku.core.Bullet;
+import com.vscode.danmaku.core.EnemyLaser;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -11,197 +12,224 @@ public class ForLoopBoss {
     public double x = 370, y = 120;
     public double width = 60, height = 60;
 
-    // 三層獨立血量 (總和 300)
-    private final int maxHpK = (int)(100 * com.vscode.danmaku.core.GameManager.difficultyMultiplier); // 最外層 k
-    private final int maxHpJ = (int)(100 * com.vscode.danmaku.core.GameManager.difficultyMultiplier); // 中間層 j
-    private final int maxHpI = (int)(100 * com.vscode.danmaku.core.GameManager.difficultyMultiplier); // 最內層 i (核心)
+    private int phase = 1; // 1: i, 2: i+j, 3: i+j+k
+    
+    private final int baseHp = (int)(100 * com.vscode.danmaku.core.GameManager.difficultyMultiplier);
+    private int hpI = baseHp;
+    private int hpJ = baseHp;
+    private int hpK = baseHp;
 
-    private int hpK = maxHpK; 
-    private int hpJ = maxHpJ; 
-    private int hpI = maxHpI; 
+    private int maxHpI = hpI;
+    private int maxHpJ = hpJ;
+    private int maxHpK = hpK;
 
-    private boolean kAlive = true;
-    private boolean jAlive = true;
+    private int iCount = 1;
+    private int jCount = 1;
+    private int kCount = 0;
+    
+    private boolean iAttackedThisKCycle = false;
+    private boolean jAttackedThisKCycle = false;
+
     private boolean isAlive = true;
 
-    // 移動與常規射擊控制
     private double vx = 2.0;
-    private long lastShootTime = 0;
-    private int iterationCount = 0;
+    private long lastIAttackTime = 0;
+    private long lastJAttackTime = 0;
 
-    // ==========================================
-    // 狙擊系統專用變數 (Phase 2 開始啟用)
-    // ==========================================
+    // Sniper / j attack logic
     private double prevPlayerX = -1;
     private double prevPlayerY = -1;
     private boolean isSniperAiming = false;
     private long sniperAimStartTime = 0;
     private double sniperAimAngle = 0;
     private double sniperAimProgress = 0.0;
-    private long lastSniperFireTime = 0;
+    private int jBurstRemaining = 0;
+    private long lastJBurstTime = 0;
+    private double lockedSniperAngle = 0;
+    private double sniperStartX, sniperStartY;
 
-    public void update(long now, List<EnemyBullet> enemyBullets, double playerX, double playerY) {
+    public void update(long now, List<EnemyBullet> enemyBullets, List<EnemyLaser> enemyLasers, double playerX, double playerY) {
         if (!isAlive) return;
 
-        // 1. 移動邏輯
-        x += vx;
-        double currentMargin = kAlive ? 40 : (jAlive ? 20 : 0);
-        if (x < 50 + currentMargin || x > 750 - width - currentMargin) {
-            vx = -vx;
+        // 1. Movement: Stop ONLY during the warning/aiming phase. Resume during firing (bursts).
+        if (!isSniperAiming) {
+            x += vx;
+            double margin = 50 + (phase * 20);
+            if (x < margin || x > 750 - width - margin) {
+                vx = -vx;
+            }
         }
 
-        // 2. 常規 Nested Loop 攻擊邏輯 (3.5 秒一次)
-        if (lastShootTime == 0) lastShootTime = now;
-        if (now - lastShootTime > 3_500_000_000L) {
-            executeNestedLoopAttack(enemyBullets, playerX, playerY);
-            lastShootTime = now;
-            iterationCount++;
-        }
-
-        // ==========================================
-        // 3. 動態預判狙擊系統 (當外層 K 被擊破後啟動)
-        // ==========================================
+        // 2. Track player for sniper
         if (prevPlayerX == -1) {
             prevPlayerX = playerX;
             prevPlayerY = playerY;
         }
-
-        // 計算玩家的瞬間移動速度向量
         double pvx = playerX - prevPlayerX;
         double pvy = playerY - prevPlayerY;
 
-        // 只要 K 死了，J 或 I 都會使用狙擊系統
-        if (!kAlive) {
-            // J 階段狙擊冷卻較長 (3秒)，I 階段較短 (2.5秒)
-            long sniperCooldown = jAlive ? 3_000_000_000L : 2_500_000_000L;
-
-            if (!isSniperAiming && now - lastSniperFireTime > sniperCooldown) {
-                isSniperAiming = true;
-                sniperAimStartTime = now;
-            }
-
-            if (isSniperAiming) {
-                long aimDuration = now - sniperAimStartTime;
-                // 瞄準時間設定為 0.8 秒
-                sniperAimProgress = (double) aimDuration / 800_000_000L;
-
-                double centerX = x + width / 2;
-                double centerY = y + height / 2;
-
-                if (sniperAimProgress < 1.0) {
-                    // 【瞄準追蹤階段】：前 80% 時間進行動態預判，後 20% 鎖死方向
-                    if (sniperAimProgress < 0.6) {
-                        double dist = Math.hypot(playerX - centerX, playerY - centerY);
-                        // I 的子彈比 J 更快
-                        double sniperSpeed = jAlive ? 16.0 : 22.0;
-                        double framesToHit = dist / sniperSpeed;
-
-                        double predictedX = playerX + (pvx * framesToHit);
-                        double predictedY = playerY + (pvy * framesToHit);
-
-                        sniperAimAngle = Math.toDegrees(Math.atan2(predictedY - centerY, predictedX - centerX));
-                    }
-                } else {
-                    // 【開火階段】
-                    isSniperAiming = false;
-                    lastSniperFireTime = now;
-                    sniperAimProgress = 0.0;
-
-                    if (jAlive) {
-                        // 【J 系統】：單發高精準直線狙擊 (不擴散)
-                        enemyBullets.add(new EnemyBullet(centerX, centerY, 16.0, sniperAimAngle));
-                        System.out.println("[警告] 中層 J 直線狙擊發射！");
-                    } else {
-                        // 【I 系統】：終極 5 向擴散預判狙擊 (擴散角度: -30, -15, 0, +15, +30)
-                        for (int angleOffset = -30; angleOffset <= 30; angleOffset += 15) {
-                            enemyBullets.add(new EnemyBullet(centerX, centerY, 22.0, sniperAimAngle + angleOffset));
-                        }
-                        System.out.println("[致命警告] 核心 I 擴散狙擊發射！");
-                    }
-                }
-            }
+        // 3. Phase Attacks
+        handleIAttack(now, enemyBullets, playerX, playerY);
+        
+        if (phase >= 2) {
+            handleJAttack(now, enemyBullets, playerX, playerY, pvx, pvy);
+        }
+        
+        if (phase >= 3) {
+            handleKCycle(now, enemyLasers, playerX, playerY);
         }
 
-        // 更新上一幀座標
         prevPlayerX = playerX;
         prevPlayerY = playerY;
     }
 
-    private void executeNestedLoopAttack(List<EnemyBullet> enemyBullets, double playerX, double playerY) {
-        double centerX = x + width / 2;
-        double centerY = y + height / 2;
+    private void handleIAttack(long now, List<EnemyBullet> enemyBullets, double playerX, double playerY) {
+        if (lastIAttackTime == 0) lastIAttackTime = now;
+        
+        // i attack every 2.5 seconds
+        if (now - lastIAttackTime > 2_500_000_000L) {
+            double centerX = x + width / 2;
+            double centerY = y + height / 2;
+            
+            int waves = 1; // K enhancement removed
+            int bulletsPerWave = iCount; 
+            
+            for (int w = 0; w < waves; w++) {
+                if (bulletsPerWave == 1) {
+                    double angle = Math.toDegrees(Math.atan2(playerY - centerY, playerX - centerX));
+                    enemyBullets.add(new EnemyBullet(centerX, centerY, 2.0 + (w * 0.5), angle));
+                } else {
+                    for (int i = 0; i < bulletsPerWave; i++) {
+                        double speed = 2.0 + (w * 0.5);
+                        double angle = (360.0 / bulletsPerWave) * i + (iCount * 10);
+                        enemyBullets.add(new EnemyBullet(centerX, centerY, speed, angle));
+                    }
+                }
+            }
+            
+            iCount++;
+            lastIAttackTime = now;
+            iAttackedThisKCycle = true;
+        }
+    }
 
-        if (kAlive) {
-            // 【階段 1】完整三層迴圈 i, j, k
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 4; j++) {
-                    double speed = 1.2 + (j * 0.6);
-                    for (int k = 0; k < 360; k += 45) {
-                        double finalAngle = k + (i * 15) + (j * 6) + (iterationCount * 12);
-                        enemyBullets.add(new EnemyBullet(centerX, centerY, speed, finalAngle));
-                    }
+    private void handleJAttack(long now, List<EnemyBullet> enemyBullets, double playerX, double playerY, double pvx, double pvy) {
+        if (!isSniperAiming && jBurstRemaining == 0 && now - lastJAttackTime > 3_000_000_000L) {
+            isSniperAiming = true;
+            sniperAimStartTime = now;
+            sniperStartX = x + width / 2;
+            sniperStartY = y + height / 2;
+        }
+
+        if (isSniperAiming) {
+            long aimDuration = now - sniperAimStartTime;
+            sniperAimProgress = (double) aimDuration / 1_500_000_000L; // 1.5 seconds aim
+
+            if (sniperAimProgress < 1.0) {
+                // Warning phase: 0.0 - 0.7 tracking, 0.7 - 1.0 locked
+                if (sniperAimProgress < 0.7) {
+                    double dist = Math.hypot(playerX - sniperStartX, playerY - sniperStartY);
+                    double sniperSpeed = 15.0;
+                    double framesToHit = dist / sniperSpeed;
+                    double predictedX = playerX + (pvx * framesToHit);
+                    double predictedY = playerY + (pvy * framesToHit);
+                    sniperAimAngle = Math.toDegrees(Math.atan2(predictedY - sniperStartY, predictedX - sniperStartX));
+                    lockedSniperAngle = sniperAimAngle;
+                } else {
+                    // Locked stage
+                    sniperAimAngle = lockedSniperAngle;
                 }
+            } else {
+                isSniperAiming = false;
+                jBurstRemaining = jCount;
+                lastJBurstTime = 0; 
             }
         }
-        else if (jAlive) {
-            // 【階段 2】k 被擊破 -> 二層迴圈 (搭配單發狙擊，給予玩家走位壓力)
-            for (int i = 0; i < 2; i++) {
-                for (int j = 0; j < 3; j++) {
-                    double speed = 2.0 + (j * 0.5);
-                    for (int k = 0; k < 360; k += 30) {
-                        double finalAngle = k + (i * 20) + (iterationCount * 15);
-                        enemyBullets.add(new EnemyBullet(centerX, centerY, speed, finalAngle));
-                    }
-                }
+        
+        if (jBurstRemaining > 0 && now - lastJBurstTime > 150_000_000L) {
+            // J bullets strictly follow locked lines from FIXED source
+            int trajectories = 1; // K enhancement removed
+            double spread = 15.0; // Fixed spread angle
+            
+            for (int t = 0; t < trajectories; t++) {
+                double offset = (t - (trajectories - 1) / 2.0) * spread;
+                enemyBullets.add(new EnemyBullet(sniperStartX, sniperStartY, 18.0, lockedSniperAngle + offset));
+            }
+            
+            jBurstRemaining--;
+            lastJBurstTime = now;
+            if (jBurstRemaining == 0) {
+                lastJAttackTime = now;
+                jCount++;
+                jAttackedThisKCycle = true;
             }
         }
-        else {
-            // 【階段 3】核心爆發：配合五向擴散狙擊，常規攻擊轉為干擾波
-            for (int i = -4; i <= 4; i++) {
-                double speed = 2.5;
-                double angleToPlayer = Math.toDegrees(Math.atan2(playerY - centerY, playerX - centerX));
-                double finalAngle = angleToPlayer + (i * 12) + (Math.sin(iterationCount) * 15);
-                enemyBullets.add(new EnemyBullet(centerX, centerY, speed, finalAngle));
+    }
+
+    private void handleKCycle(long now, List<EnemyLaser> enemyLasers, double playerX, double playerY) {
+        if (iAttackedThisKCycle && jAttackedThisKCycle) {
+            kCount++;
+            iAttackedThisKCycle = false;
+            jAttackedThisKCycle = false;
+            
+            // K Attack: Player-centered lasers based on kCount
+            int laserCount = 1 + (kCount / 2);
+            for (int i = 0; i < laserCount; i++) {
+                // Determine origin based on iteration to spread around
+                double startX, startY;
+                int side = (kCount + i) % 4;
+                if (side == 0) { startX = Math.random() * 800; startY = 0; }
+                else if (side == 1) { startX = 800; startY = Math.random() * 600; }
+                else if (side == 2) { startX = Math.random() * 800; startY = 600; }
+                else { startX = 0; startY = Math.random() * 600; }
+                
+                enemyLasers.add(new EnemyLaser(startX, startY, playerX, playerY, now));
             }
+            
+            System.out.println("[SYSTEM] K_LAYER LASER_STRIKE: Count=" + laserCount);
         }
     }
 
     public boolean hit(Bullet playerBullet) {
         if (!isAlive) return false;
 
-        // 1. K 層裝甲
-        if (kAlive) {
-            if (playerBullet.x < x + width + 40 && playerBullet.x + playerBullet.width > x - 40 &&
-                    playerBullet.y < y + height + 40 && playerBullet.y + playerBullet.height > y - 40) {
-                hpK--;
-                playerBullet.setAlive(false);
-                if (hpK <= 0) kAlive = false;
-                return false;
-            }
-            return false;
-        }
+        boolean hitDetected = false;
+        double bx = playerBullet.x;
+        double by = playerBullet.y;
+        double bw = playerBullet.width;
+        double bh = playerBullet.height;
 
-        // 2. J 層裝甲
-        if (jAlive) {
-            if (playerBullet.x < x + width + 20 && playerBullet.x + playerBullet.width > x - 20 &&
-                    playerBullet.y < y + height + 20 && playerBullet.y + playerBullet.height > y - 20) {
+        if (phase == 1) {
+            if (bx < x + width && bx + bw > x && by < y + height && by + bh > y) {
+                hpI--;
+                hitDetected = true;
+                if (hpI <= 0) {
+                    phase = 2;
+                    System.out.println("[EVOLUTION] PHASE 2: J_LAYER COMPILED");
+                }
+            }
+        } else if (phase == 2) {
+            if (bx < x + width + 20 && bx + bw > x - 20 && by < y + height + 20 && by + bh > y - 20) {
                 hpJ--;
-                playerBullet.setAlive(false);
-                if (hpJ <= 0) jAlive = false;
-                return false;
+                hitDetected = true;
+                if (hpJ <= 0) {
+                    phase = 3;
+                    System.out.println("[EVOLUTION] PHASE 3: K_LAYER COMPILED");
+                }
             }
-            return false;
+        } else if (phase == 3) {
+            if (bx < x + width + 40 && bx + bw > x - 40 && by < y + height + 40 && by + bh > y - 40) {
+                hpK--;
+                hitDetected = true;
+                if (hpK <= 0) {
+                    isAlive = false;
+                    return true;
+                }
+            }
         }
 
-        // 3. 核心命中
-        if (playerBullet.x < x + width && playerBullet.x + playerBullet.width > x &&
-                playerBullet.y < y + height && playerBullet.y + playerBullet.height > y) {
-            hpI--;
+        if (hitDetected) {
             playerBullet.setAlive(false);
-            if (hpI <= 0) {
-                isAlive = false;
-                return true;
-            }
         }
         return false;
     }
@@ -209,102 +237,68 @@ public class ForLoopBoss {
     public void draw(GraphicsContext gc) {
         if (!isAlive) return;
 
-        // ==========================================
-        // 繪製預判狙擊雷射線 (支援單線與多線擴散)
-        // ==========================================
-        if (!kAlive && isSniperAiming) {
-            double centerX = x + width / 2;
-            double centerY = y + height / 2;
+        double centerX = x + width / 2;
+        double centerY = y + height / 2;
 
-            // 雷射特效：隨著時間變細，顏色變深
-            double lineWidth = 6 * (1.0 - sniperAimProgress) + 1.5;
-
-            // 如果進度超過 80% (鎖定階段)，雷射變成亮實心紅色
-            if (sniperAimProgress >= 0.8) {
+        // Draw sniper line if aiming
+        if (isSniperAiming) {
+            double lineWidth = 5 * (1.0 - sniperAimProgress) + 1;
+            if (sniperAimProgress >= 0.7) { // Sync with locked phase
                 gc.setStroke(Color.web("#FF0000", 0.9));
                 gc.setLineDashes();
             } else {
-                gc.setStroke(Color.web("#FF4444", 0.4 + 0.4 * sniperAimProgress));
+                gc.setStroke(Color.web("#FF4444", 0.4));
                 gc.setLineDashes(10, 10);
             }
             gc.setLineWidth(lineWidth);
-
-            if (jAlive) {
-                // 【J 系統】：畫出一條直線預警
-                double endX = centerX + Math.cos(Math.toRadians(sniperAimAngle)) * 1500;
-                double endY = centerY + Math.sin(Math.toRadians(sniperAimAngle)) * 1500;
-                gc.strokeLine(centerX, centerY, endX, endY);
-            } else {
-                // 【I 系統】：畫出五條擴散線預警，完全對應子彈發射軌跡
-                for (int angleOffset = -30; angleOffset <= 30; angleOffset += 15) {
-                    double spreadAngle = sniperAimAngle + angleOffset;
-                    double endX = centerX + Math.cos(Math.toRadians(spreadAngle)) * 1500;
-                    double endY = centerY + Math.sin(Math.toRadians(spreadAngle)) * 1500;
-                    gc.strokeLine(centerX, centerY, endX, endY);
-                }
+            
+            int trajectories = 1; // Strictly 1 warning line
+            double spread = 15.0;
+            
+            for (int t = 0; t < trajectories; t++) {
+                double offset = (t - (trajectories - 1) / 2.0) * spread;
+                double angle = sniperAimAngle + offset;
+                double endX = sniperStartX + Math.cos(Math.toRadians(angle)) * 1500;
+                double endY = sniperStartY + Math.sin(Math.toRadians(angle)) * 1500;
+                gc.strokeLine(sniperStartX, sniperStartY, endX, endY);
             }
-
-            gc.setLineDashes(); // 重置畫筆狀態
+            gc.setLineDashes();
         }
 
-        // --- 繪製最外層 k 方塊 ---
-        if (kAlive) {
-            gc.setStroke(Color.web("#FF00FF"));
-            gc.setLineWidth(3);
-            gc.strokeRect(x - 40, y - 40, width + 80, height + 80);
-
-            gc.setFill(Color.web("#FF00FF"));
-            gc.setFont(new Font("Monospaced", 12));
-            gc.fillText("k_layer: HP " + hpK, x - 40, y - 46);
-        }
-
-        // --- 繪製中層 j 方塊 ---
-        if (jAlive) {
-            gc.setStroke(Color.web("#00FFFF"));
-            gc.setLineWidth(2.5);
-            gc.strokeRect(x - 20, y - 20, width + 40, height + 40);
-
-            if (!kAlive) {
-                gc.setFill(Color.web("#00FFFF"));
-                gc.setFont(new Font("Monospaced", 12));
-                gc.fillText("j_layer: HP " + hpJ, x - 20, y - 26);
-            }
-        }
-
-        // --- 繪製最內層 i 方塊核心 ---
+        // Draw Layers
+        // Core i
         gc.setFill(Color.web("#111111"));
         gc.fillRect(x, y, width, height);
-
-        if (!jAlive) {
-            // 狙擊發射時，核心爆閃紅色
-            if (isSniperAiming && sniperAimProgress >= 0.8) {
-                gc.setFill(Color.web("#FF0000"));
-                gc.fillRect(x, y, width, height);
-            }
-            gc.setStroke(Color.web("#FF3333"));
-            gc.setLineWidth(4);
-        } else {
-            gc.setStroke(Color.web("#00FF00"));
-            gc.setLineWidth(2);
-        }
+        gc.setStroke(Color.web("#00FF00"));
+        gc.setLineWidth(2);
         gc.strokeRect(x, y, width, height);
-
-        // 核心文字標籤
+        gc.setFill(Color.web("#00FF00"));
         gc.setFont(new Font("Monospaced", 14));
-        if (!jAlive) {
-            gc.setFill(isSniperAiming && sniperAimProgress >= 0.8 ? Color.WHITE : Color.web("#FF3333"));
-            gc.fillText("CORE_i", x + 5, y + 34);
-            gc.setFont(new Font("Monospaced", 11));
-            gc.fillText("HP: " + hpI, x + 10, y - 6);
-        } else {
-            gc.setFill(Color.web("#00FF00"));
-            gc.fillText("[ i ]", x + 14, y + 34);
+        gc.fillText("[i]", x + 18, y + 35);
+
+        // Wrapper j
+        if (phase >= 2) {
+            gc.setStroke(Color.web("#00FFFF", 0.8));
+            gc.setLineWidth(3);
+            gc.strokeRect(x - 20, y - 20, width + 40, height + 40);
+            gc.setFill(Color.web("#00FFFF"));
+            gc.setFont(new Font("Monospaced", 12));
+            gc.fillText("j_wrap", x - 20, y - 25);
+        }
+
+        // Wrapper k
+        if (phase >= 3) {
+            gc.setStroke(Color.web("#FF00FF", 0.8));
+            gc.setLineWidth(4);
+            gc.strokeRect(x - 40, y - 40, width + 80, height + 80);
+            gc.setFill(Color.web("#FF00FF"));
+            gc.setFont(new Font("Monospaced", 12));
+            gc.fillText("k_wrap", x - 40, y - 45);
         }
     }
 
     public boolean isAlive() { return isAlive; }
-    public boolean isKAlive() { return kAlive; }
-    public boolean isJAlive() { return jAlive; }
+    public int getPhase() { return phase; }
     public int getHpI() { return hpI; }
     public int getHpJ() { return hpJ; }
     public int getHpK() { return hpK; }
