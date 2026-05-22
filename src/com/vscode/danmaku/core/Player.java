@@ -16,6 +16,15 @@ public class Player extends GameObject {
     private Color activeBuffColor = null;
 
     // ==========================================
+    // 修改：血量、護盾、攻擊力系統
+    // ==========================================
+    private int maxHp = 5;
+    private int hp = maxHp;
+    private int maxShield = 3;
+    private int shield = maxShield;
+    private int attackPower = 1;
+
+    // ==========================================
     // 修改：BOMB 充能系統 (更慢、上限 1)
     // ==========================================
     private int bombCount = 1;               // 一開始自帶 1 次大招
@@ -25,6 +34,37 @@ public class Player extends GameObject {
 
     public Player(double x, double y) {
         super(x, y, 16, 16);
+    }
+
+    public int getHp() { return hp; }
+    public int getMaxHp() { return maxHp; }
+    public int getShield() { return shield; }
+    public int getMaxShield() { return maxShield; }
+    public int getAttackPower() { return attackPower; }
+
+    private long invincibilityEndTime = 0;
+
+    public void takeDamage(int damage, long now) {
+        if (now < invincibilityEndTime) return;
+
+        if (shield > 0) {
+            shield -= damage;
+            if (shield < 0) {
+                hp += shield; // shield 變成負數，扣除剩餘的血量
+                shield = 0;
+            }
+        } else {
+            hp -= damage;
+        }
+        if (hp <= 0) {
+            setAlive(false);
+        } else {
+            invincibilityEndTime = now + 1_000_000_000L; // 1 second i-frames
+        }
+    }
+
+    public boolean isInvincible(long now) {
+        return now < invincibilityEndTime;
     }
 
     public void addCharge(double amount) {
@@ -77,10 +117,6 @@ public class Player extends GameObject {
 
         gc.strokeLine(x, y + height / 2, x + width, y + height / 2);
         gc.strokeLine(x + width / 2, y, x + width / 2, y + height);
-
-        // 繪製判定核心 (Hitbox) - 彈幕遊戲常見的小點
-        gc.setFill(Color.RED);
-        gc.fillOval(x + width / 2 - 2, y + height / 2 - 2, 4, 4);
     }
 
     public void shoot(long now, List<Bullet> bullets) {
@@ -90,16 +126,16 @@ public class Player extends GameObject {
 
             switch (fireMode) {
                 case 0:
-                    bullets.add(new Bullet(bulletX, bulletY, Bullet.Type.INT));
+                    bullets.add(new Bullet(bulletX, bulletY, Bullet.Type.INT, attackPower));
                     break;
                 case 1:
-                    bullets.add(new Bullet(bulletX - 10, bulletY, Bullet.Type.INT));
-                    bullets.add(new Bullet(bulletX + 10, bulletY, Bullet.Type.INT));
+                    bullets.add(new Bullet(bulletX - 10, bulletY, Bullet.Type.INT, attackPower));
+                    bullets.add(new Bullet(bulletX + 10, bulletY, Bullet.Type.INT, attackPower));
                     break;
                 case 2:
-                    bullets.add(new Bullet(bulletX - 16, bulletY, Bullet.Type.INT));
-                    bullets.add(new Bullet(bulletX, bulletY - 8, Bullet.Type.INT));
-                    bullets.add(new Bullet(bulletX + 16, bulletY, Bullet.Type.INT));
+                    bullets.add(new Bullet(bulletX - 16, bulletY, Bullet.Type.INT, attackPower));
+                    bullets.add(new Bullet(bulletX, bulletY - 8, Bullet.Type.INT, attackPower));
+                    bullets.add(new Bullet(bulletX + 16, bulletY, Bullet.Type.INT, attackPower));
                     break;
             }
             lastShotTime = now;

@@ -6,6 +6,7 @@ import javafx.scene.text.Font;
 
 public class Bullet extends GameObject {
     private static final double SPEED = 10.0;
+    public int damage;
 
     public enum Type {
         INT, CHAR, BOOL // 語法類型
@@ -13,9 +14,10 @@ public class Bullet extends GameObject {
 
     private final Type type;
 
-    public Bullet(double x, double y, Type type) {
+    public Bullet(double x, double y, Type type, int damage) {
         super(x, y, 10, 10);
         this.type = type;
+        this.damage = damage;
     }
 
     @Override

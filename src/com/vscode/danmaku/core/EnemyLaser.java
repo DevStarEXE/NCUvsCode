@@ -90,14 +90,17 @@ public class EnemyLaser {
     public boolean collidesWithPlayer(double px, double py, double pw, double ph) {
         if (!isActive || isFinished) return false;
 
-        double pCX = px + pw / 2;
-        double pCY = py + ph / 2;
+        // 檢查矩形的四個頂點以及中心點到雷射直線的距離
+        double laserWidth = 10;
+        double threshold = laserWidth / 2 + 2; // 雷射半寬度加上一點緩衝
+
+        if (pointToLineDistance(px, py, startX, startY, endX, endY) < threshold) return true;
+        if (pointToLineDistance(px + pw, py, startX, startY, endX, endY) < threshold) return true;
+        if (pointToLineDistance(px, py + ph, startX, startY, endX, endY) < threshold) return true;
+        if (pointToLineDistance(px + pw, py + ph, startX, startY, endX, endY) < threshold) return true;
+        if (pointToLineDistance(px + pw / 2, py + ph / 2, startX, startY, endX, endY) < threshold) return true;
         
-        // Point-to-line distance
-        // Line from (startX, startY) to (endX, endY)
-        double dist = pointToLineDistance(pCX, pCY, startX, startY, endX, endY);
-        
-        return dist < (pw / 4 + 5); // Rough collision check for laser width
+        return false;
     }
 
     private double pointToLineDistance(double px, double py, double x1, double y1, double x2, double y2) {

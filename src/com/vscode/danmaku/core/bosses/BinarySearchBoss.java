@@ -142,7 +142,7 @@ public class BinarySearchBoss {
 
         if (playerBullet.x < x + width && playerBullet.x + playerBullet.width > x &&
                 playerBullet.y < y + height && playerBullet.y + playerBullet.height > y) {
-            hp -= 2; // 假設每次命中扣 2 點 HP
+            hp -= playerBullet.damage; // 扣除玩家子彈攻擊力
             playerBullet.setAlive(false);
             if (hp <= 0) {
                 isAlive = false;

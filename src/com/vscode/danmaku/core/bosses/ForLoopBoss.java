@@ -200,10 +200,11 @@ public class ForLoopBoss {
         double by = playerBullet.y;
         double bw = playerBullet.width;
         double bh = playerBullet.height;
+        int damage = playerBullet.damage;
 
         if (phase == 1) {
             if (bx < x + width && bx + bw > x && by < y + height && by + bh > y) {
-                hpI--;
+                hpI -= damage;
                 hitDetected = true;
                 if (hpI <= 0) {
                     phase = 2;
@@ -212,7 +213,7 @@ public class ForLoopBoss {
             }
         } else if (phase == 2) {
             if (bx < x + width + 20 && bx + bw > x - 20 && by < y + height + 20 && by + bh > y - 20) {
-                hpJ--;
+                hpJ -= damage;
                 hitDetected = true;
                 if (hpJ <= 0) {
                     phase = 3;
@@ -221,7 +222,7 @@ public class ForLoopBoss {
             }
         } else if (phase == 3) {
             if (bx < x + width + 40 && bx + bw > x - 40 && by < y + height + 40 && by + bh > y - 40) {
-                hpK--;
+                hpK -= damage;
                 hitDetected = true;
                 if (hpK <= 0) {
                     isAlive = false;

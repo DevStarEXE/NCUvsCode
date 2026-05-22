@@ -106,12 +106,14 @@ public class EnemyBullet2 {
     public void setAlive(boolean alive) { this.isAlive = alive; }
 
     public boolean collidesWithPlayer(double px, double py, double pWidth, double pHeight) {
-        double pCenterX = px + pWidth / 2;
-        double pCenterY = py + pHeight / 2;
-        double distance = Math.sqrt(Math.pow(x - pCenterX, 2) + Math.pow(y - pCenterY, 2));
-        
-        // 玩家的真實 Hitbox 改為半徑 2.0 的小圓
-        double playerHitboxRadius = 2.0;
-        return distance < (radius + playerHitboxRadius);
+        // 使用圓形與矩形的碰撞檢查：找到矩形上最接近圓心的點
+        double closestX = Math.max(px, Math.min(x, px + pWidth));
+        double closestY = Math.max(py, Math.min(y, py + pHeight));
+
+        double distanceX = x - closestX;
+        double distanceY = y - closestY;
+
+        double distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
+        return distanceSquared < (radius * radius);
     }
 }

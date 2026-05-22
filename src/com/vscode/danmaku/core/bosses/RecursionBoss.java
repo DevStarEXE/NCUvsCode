@@ -202,7 +202,7 @@ public class RecursionBoss {
 
         if (playerBullet.x < x + width && playerBullet.x + playerBullet.width > x &&
             playerBullet.y < y + height && playerBullet.y + playerBullet.height > y) {
-            hp--;
+            hp -= playerBullet.damage;
             playerBullet.setAlive(false);
             if (hp <= 0) {
                 isAlive = false;

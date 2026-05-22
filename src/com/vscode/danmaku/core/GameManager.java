@@ -367,8 +367,10 @@ public class GameManager {
                 }
             }
             if (linkedListBoss.isHittingPlayer(player)) {
-                player.setAlive(false);
-                isGameOver = true;
+                player.takeDamage(1, now);
+                if (!player.isAlive()) {
+                    isGameOver = true;
+                }
             }
         } else if (binarySearchBoss != null && binarySearchBoss.isAlive()) {
             for (Bullet b : playerBullets) {
@@ -418,16 +420,22 @@ public class GameManager {
                         if (tutorialStepCount < 0) tutorialStepCount = 0;
                     }
                 } else {
-                    player.setAlive(false);
-                    isGameOver = true;
+                    eb.setAlive(false);
+                    player.takeDamage(1, now);
+                    if (!player.isAlive()) {
+                        isGameOver = true;
+                    }
                 }
                 break;
             }
         }
         for (EnemyBullet2 eb2 : enemyBullet2s) {
             if (eb2.isAlive() && eb2.collidesWithPlayer(player.x, player.y, player.width, player.height)) {
-                player.setAlive(false);
-                isGameOver = true;
+                eb2.setAlive(false);
+                player.takeDamage(1, now);
+                if (!player.isAlive()) {
+                    isGameOver = true;
+                }
                 break;
             }
         }
@@ -440,8 +448,10 @@ public class GameManager {
         for (EnemyLaser el : recursionLasers) {
             el.update(now);
             if (el.collidesWithPlayer(player.x, player.y, player.width, player.height)) {
-                player.setAlive(false);
-                isGameOver = true;
+                player.takeDamage(1, now);
+                if (!player.isAlive()) {
+                    isGameOver = true;
+                }
                 break;
             }
         }
@@ -547,6 +557,42 @@ public class GameManager {
         gc.setFill(Color.LIGHTGRAY);
         gc.setFont(new Font("Monospaced", 18));
         gc.fillText("SCORE: " + String.format("%05d", score), 20, 30);
+
+        // --- Player Stats UI ---
+        if (player != null) {
+            double statBarWidth = 150;
+            double statBarHeight = 14;
+            double statX = 20;
+
+            // HP Bar
+            gc.setFill(Color.web("#331111"));
+            gc.fillRect(statX, 42, statBarWidth, statBarHeight);
+            double hpRatio = (double) player.getHp() / player.getMaxHp();
+            gc.setFill(Color.web("#FF4444"));
+            gc.fillRect(statX, 42, statBarWidth * hpRatio, statBarHeight);
+            gc.setStroke(Color.web("#888888"));
+            gc.setLineWidth(1);
+            gc.strokeRect(statX, 42, statBarWidth, statBarHeight);
+            gc.setFill(Color.WHITE);
+            gc.setFont(new Font("Monospaced", 10));
+            gc.fillText("HP " + player.getHp() + "/" + player.getMaxHp(), statX + 5, 53);
+
+            // Shield Bar
+            gc.setFill(Color.web("#112233"));
+            gc.fillRect(statX, 62, statBarWidth, statBarHeight);
+            double shieldRatio = (double) player.getShield() / player.getMaxShield();
+            gc.setFill(Color.web("#00AAFF"));
+            gc.fillRect(statX, 62, statBarWidth * shieldRatio, statBarHeight);
+            gc.setStroke(Color.web("#888888"));
+            gc.strokeRect(statX, 62, statBarWidth, statBarHeight);
+            gc.setFill(Color.WHITE);
+            gc.fillText("SHIELD " + player.getShield() + "/" + player.getMaxShield(), statX + 5, 73);
+
+            // ATK Stats
+            gc.setFill(Color.web("#FFD700"));
+            gc.setFont(new Font("Monospaced", 14));
+            gc.fillText("ATK: " + player.getAttackPower(), statX, 95);
+        }
 
         // 左下角充能 UI
         double uiX = 20;

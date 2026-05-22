@@ -1,5 +1,6 @@
 package com.vscode.danmaku.core.bosses.LinkedWorm;
 
+import com.vscode.danmaku.core.Bullet;
 import com.vscode.danmaku.core.EnemyBullet;
 import com.vscode.danmaku.core.GameObject;
 import javafx.scene.canvas.GraphicsContext;
@@ -366,7 +367,7 @@ public class LinkedListBoss extends GameObject {
         }
     }
 
-    public boolean hit(GameObject bullet) {
+    public boolean hit(Bullet bullet) {
         if (!isAlive || bossHp <= 0) return false;
 
         // 技能期間的能量球 hitbox
@@ -375,7 +376,7 @@ public class LinkedListBoss extends GameObject {
             double bx = bullet.x + bullet.width/2;
             double by = bullet.y + bullet.height/2;
             if (Math.hypot((x + 10) - bx, (y + 10) - by) < radius) {
-                bossHp--;
+                bossHp -= bullet.damage;
                 bullet.setAlive(false);
                 if (bossHp <= 0) isAlive = false;
                 return true;
@@ -385,7 +386,7 @@ public class LinkedListBoss extends GameObject {
 
         BossNode headNode = nodes.get(0);
         if (headNode.collidesWith(bullet)) {
-            bossHp--;
+            bossHp -= bullet.damage;
             bullet.setAlive(false); 
 
             if (bossHp <= 0) {
