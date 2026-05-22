@@ -26,6 +26,9 @@ public class LinkedListBoss extends GameObject {
     private double targetY;
     private double targetX;
 
+    private double lastPlayerX;
+    private double lastPlayerY;
+
     public void setTargetY(double y) { this.targetY = y; }
     public void setTargetX(double x) { this.targetX = x; }
 
@@ -80,6 +83,9 @@ public class LinkedListBoss extends GameObject {
     // 多載的 update，可接收 enemyBullets 和玩家座標
     public void update(long now, List<EnemyBullet> enemyBullets, double playerX, double playerY) {
         if (!isAlive) return;
+
+        this.lastPlayerX = playerX;
+        this.lastPlayerY = playerY;
 
         if (lastGrowTime == 0) lastGrowTime = now;
         if (lastSkillTime == 0) lastSkillTime = now; // 初始技能計時
@@ -323,6 +329,25 @@ public class LinkedListBoss extends GameObject {
             }
             double progress = (double) retractedCount / nodes.size();
             
+            // --- 技能2 預判線 ---
+            if (state == BossState.RETRACTING && nextStateAfterRetract == BossState.DASHING) {
+                double angle = Math.atan2(lastPlayerY - (y + 10), lastPlayerX - (x + 10));
+                double endX = (x + 10) + Math.cos(angle) * 1000;
+                double endY = (y + 10) + Math.sin(angle) * 1000;
+
+                if (progress > 0.8) {
+                    gc.setStroke(Color.BLUE); // 即將攻擊時變藍色
+                    gc.setLineWidth(4.0);
+                } else {
+                    gc.setStroke(Color.web("#FFFFFF", 0.5 * progress)); // 蓄力時白色半透明
+                    gc.setLineWidth(2.0);
+                }
+                
+                gc.setLineDashes(20, 15);
+                gc.strokeLine(x + 10, y + 10, endX, endY);
+                gc.setLineDashes(null);
+            }
+
             double currentRadius = maxRadius * progress;
             
             if (progress > 0.1) {
