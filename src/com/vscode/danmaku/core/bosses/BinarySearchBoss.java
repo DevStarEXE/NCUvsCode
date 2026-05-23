@@ -2,6 +2,7 @@ package com.vscode.danmaku.core.bosses;
 
 import com.vscode.danmaku.core.EnemyBullet2; // 使用新型子彈
 import com.vscode.danmaku.core.Bullet;
+import com.vscode.danmaku.core.EnemyBullet3;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -29,6 +30,7 @@ public class BinarySearchBoss {
     private long lastShootTime = 0;
     private final long ATTACK_INTERVAL = 5_000_000_000L; // 5秒 (單位：奈秒 nanoseconds)
     private int searchStep = 0; // 二元搜尋的計數器 (用於改變彈幕樣式)
+    private String currentSkillName = "READY"; // 用於在畫面上顯示目前放什麼招
 
     /**
      * Boss 的主更新邏輯
@@ -37,7 +39,7 @@ public class BinarySearchBoss {
      * @param playerX 玩家目前的 X 座標
      * @param playerY 玩家目前的 Y 座標
      */
-    public void update(long now, List<EnemyBullet2> enemyBullets2, double playerX, double playerY, double stageWidth, double stageHeight) {
+    public void update(long now, List<EnemyBullet2> enemyBullets2, List<EnemyBullet3> enemyBullets3, double playerX, double playerY, double stageWidth, double stageHeight) {
         if (!isAlive) return;
 
         // ==========================================
@@ -75,9 +77,18 @@ public class BinarySearchBoss {
         // ==========================================
         if (lastShootTime == 0) lastShootTime = now;
         if (now - lastShootTime > ATTACK_INTERVAL) {
-            executeBinarySearchAttack(enemyBullets2, playerX, playerY);
+
+            // 50% 機率隨機選招
+            if (random.nextBoolean()) {
+                // 出招：EnemyBullet2 (二元搜尋追蹤彈) [cite: 11]
+                executeBinarySearchAttack(enemyBullets2, playerX, playerY);
+                currentSkillName = "Binary Search Homing";
+            } else {
+                // 出招：EnemyBullet3 (側邊時間間隔夾擊彈) [cite: 14]
+                executeSidePincerAttack(enemyBullets3, stageWidth, stageHeight);
+                currentSkillName = "Side Pincer Sweep";
+            }
             lastShootTime = now;
-            searchStep++;
         }
     }
 
@@ -100,19 +111,19 @@ public class BinarySearchBoss {
             // 【Mid 0 - 全範圍查找】：子彈數量多，散開範圍大，追蹤時間長 (大範圍鋪場)
             bulletCount = 24;
             spreadSpeed = 4.0;     // 散開速度快 = 範圍大 [cite: 2]
-            homingFrames = 120;    // 追蹤 120 幀 (約 2 秒) [cite: 6]
+            homingFrames = 60;    // 追蹤 60 幀 (約 2 秒) [cite: 6]
             System.out.println("[Binary Search] Status: O(log N) - Initializing Full Array Search...");
         } else if (step == 1) {
             // 【Mid 1 - 範圍折半】：數量變少，擴散範圍減半，追蹤時間縮短
             bulletCount = 12;
             spreadSpeed = 2.5;     // 散開範圍中等 [cite: 2]
-            homingFrames = 60;     // 追蹤 60 幀 (約 1 秒) [cite: 6]
+            homingFrames = 30;     // 追蹤 30 幀 (約 1 秒) [cite: 6]
             System.out.println("[Binary Search] Status: Midpoint Split - Target in range [Low, Mid]");
         } else {
             // 【Mid 2 - 精準鎖定】：數量最少，幾乎不擴散，極短時間追蹤後高速暴衝 (逼迫精準閃躲)
             bulletCount = 6;
             spreadSpeed = 1.2;     // 散開範圍極小 [cite: 2]
-            homingFrames = 25;     // 追蹤 25 幀 (約 0.4 秒後硬直衝刺)
+            homingFrames = 10;     // 追蹤 25 幀 (約 0.4 秒後硬直衝刺)
             System.out.println("[Binary Search] Status: Element Found! Executing precise lock-on.");
         }
 
@@ -123,7 +134,7 @@ public class BinarySearchBoss {
             // 建立 EnemyBullet2 實例
             EnemyBullet2 bullet = new EnemyBullet2(
                     centerX, centerY,
-                    2,            // baseSpeed: 子彈基本衝刺速度
+                    5,            // baseSpeed: 子彈基本衝刺速度
                     angle,          // 初始擴散角度
                     spreadSpeed,    // 擴散速度 (變數控制範圍) [cite: 2]
                     35,             // spreadDuration: 固定擴散 35 幀才轉向
@@ -131,6 +142,30 @@ public class BinarySearchBoss {
             );
 
             enemyBullets2.add(bullet);
+        }
+    }
+
+    private void executeSidePincerAttack(List<EnemyBullet3> enemyBullets3, double stageWidth, double stageHeight) {
+        int totalBullets = 30; // 規定生成 30 發 [cite: 14]
+        double bulletSpeed = 5.0; // 子彈控制速度 [cite: 14]
+
+        // --- 核心：控制發射時間間隔的變數 ---
+        int shootIntervalFrames = 30; // 每隔 6 幀（約 0.1 秒）發射一發子彈
+
+        for (int i = 0; i < totalBullets; i++) {
+            // 隨機決定從左邊（向右跑）或右邊（向左跑）生成 [cite: 14]
+            boolean isFromLeft = random.nextBoolean();
+            double startX = isFromLeft ? 10 : stageWidth - 10;
+
+            // 隨機生成於視窗的 Y 軸上（留上下邊距 50 避免死角） [cite: 14]
+            double startY = 50 + random.nextDouble() * (stageHeight - 100);
+
+            // 計算這顆子彈排隊等待發射的延遲時間
+            // 第 0 顆延遲 0 幀，第 1 顆延遲 6 幀，第 2 顆延遲 12 幀...以此類推，形成流水般的間隔發射！
+            int delayFrames = i * shootIntervalFrames;
+
+            EnemyBullet3 bullet = new EnemyBullet3(startX, startY, bulletSpeed, isFromLeft, delayFrames);
+            enemyBullets3.add(bullet);
         }
     }
 
@@ -185,7 +220,7 @@ public class BinarySearchBoss {
         gc.setFont(new Font("Monospaced", 10));
         gc.setFill(Color.YELLOW);
         int step = searchStep % 3;
-        gc.fillText("STEP: M" + step, x + 10, y + 35);
+        gc.fillText("CAST: " + currentSkillName, x - 10, y + 35);
     }
 
     public boolean isAlive() { return isAlive; }

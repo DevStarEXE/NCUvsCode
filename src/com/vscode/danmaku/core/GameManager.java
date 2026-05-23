@@ -39,13 +39,16 @@ public class GameManager {
     public static String selectedLevel = "BOSS";
     public static double difficultyMultiplier = 1.0;
 
+    // bosses
     private LinkedListBoss linkedListBoss;
     private ForLoopBoss forLoopBoss;
     private RecursionBoss recursionBoss;
     private BinarySearchBoss binarySearchBoss;
-    
+
+    // enemyAttack
     private final List<EnemyBullet> enemyBullets = new ArrayList<>();
     private final List<EnemyBullet2> enemyBullet2s = new ArrayList<>();
+    private final List<EnemyBullet3> enemyBullet3s = new ArrayList<>();
     private final List<EnemyLaser> recursionLasers = new ArrayList<>();
 
     private boolean isAutoShooting = true;
@@ -320,7 +323,7 @@ public class GameManager {
                 linkedListBoss.setTargetY(player.y);
                 linkedListBoss.update(now, enemyBullets, player.x, player.y);
             } else if (binarySearchBoss != null && binarySearchBoss.isAlive()) {
-                binarySearchBoss.update(now, enemyBullet2s, player.x + player.width/2, player.y + player.height/2, cw, ch);
+                binarySearchBoss.update(now, enemyBullet2s, enemyBullet3s, player.x + player.width/2, player.y + player.height/2, cw, ch);
             }
         }
 
@@ -408,7 +411,19 @@ public class GameManager {
                     eb2.setAlive(false);
                 }
             }
+
+            // enemybullet3 update
+            for (EnemyBullet3 eb3 : enemyBullet3s)
+            {
+                eb3.update();
+                if (eb3.x < -20 || eb3.x > cw + 20 || eb3.y < -20 || eb3.y > ch+20)
+                {
+                    eb3.setAlive(false);
+                }
+            }
         }
+
+
 
         // 碰撞玩家判定 (不論時間是否停止都處理)
         for (EnemyBullet eb : enemyBullets) {
@@ -439,10 +454,21 @@ public class GameManager {
                 break;
             }
         }
+
+        for (EnemyBullet3 eb3 : enemyBullet3s)
+        {
+            if (eb3.isAlive() && eb3.collidesWithPlayer(player.x, player.y, player.width, player.height))
+            {
+                player.setAlive(false);
+                isGameOver = true;
+                break;
+            }
+        }
         
         playerBullets.removeIf(b -> !b.isAlive());
         enemyBullets.removeIf(eb -> !eb.isAlive());
         enemyBullet2s.removeIf(eb2 -> !eb2.isAlive());
+        enemyBullet3s.removeIf( eb3 -> !eb3.isAlive());
 
         // recursion lasers update and collision
         for (EnemyLaser el : recursionLasers) {
@@ -476,6 +502,7 @@ public class GameManager {
         for (Bullet b : playerBullets) { b.draw(gc); }
         for (EnemyBullet eb : enemyBullets) { eb.draw(gc); }
         for (EnemyBullet2 eb2 : enemyBullet2s) { eb2.draw(gc); }
+        for (EnemyBullet3 eb3 : enemyBullet3s) { eb3.draw(gc); }
         for (EnemyLaser el : recursionLasers) { el.draw(gc); }
         if (player != null && player.isAlive()) { player.draw(gc); }
 
