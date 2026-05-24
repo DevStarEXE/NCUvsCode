@@ -322,7 +322,8 @@ public class GameManager {
                 linkedListBoss.setTargetX(player.x);
                 linkedListBoss.setTargetY(player.y);
                 linkedListBoss.update(now, enemyBullets, player.x, player.y);
-            } else if (binarySearchBoss != null && binarySearchBoss.isAlive()) {
+            }
+            else if (binarySearchBoss != null && binarySearchBoss.isAlive()) {
                 binarySearchBoss.update(now, enemyBullet2s, enemyBullet3s, player.x + player.width/2, player.y + player.height/2, cw, ch);
             }
         }
@@ -459,8 +460,12 @@ public class GameManager {
         {
             if (eb3.isAlive() && eb3.collidesWithPlayer(player.x, player.y, player.width, player.height))
             {
-                player.setAlive(false);
-                isGameOver = true;
+                eb3.setAlive(false);
+                player.takeDamage(1,now);
+                if (!player.isAlive())
+                {
+                    isGameOver = true;
+                }
                 break;
             }
         }

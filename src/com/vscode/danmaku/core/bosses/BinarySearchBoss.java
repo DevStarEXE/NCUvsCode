@@ -28,7 +28,7 @@ public class BinarySearchBoss {
 
     // --- 攻擊控制變數 ---
     private long lastShootTime = 0;
-    private final long ATTACK_INTERVAL = 5_000_000_000L; // 5秒 (單位：奈秒 nanoseconds)
+    private final long ATTACK_INTERVAL = 3_000_000_000L; // 3秒 (單位：奈秒 nanoseconds)
     private int searchStep = 0; // 二元搜尋的計數器 (用於改變彈幕樣式)
     private String currentSkillName = "READY"; // 用於在畫面上顯示目前放什麼招
 
