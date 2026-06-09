@@ -8,7 +8,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.vscode.menu.MenuController">
+<AnchorPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.vscode.menu.MenuController">
    <children>
       <ImageView fitHeight="600.0" fitWidth="800.0" pickOnBounds="true" preserveRatio="false" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <image>
@@ -16,11 +16,11 @@
          </image>
       </ImageView>
 
-      <VBox alignment="TOP_CENTER" layoutX="150.0" layoutY="45.0" prefWidth="500.0" AnchorPane.topAnchor="50.0">
+      <VBox alignment="TOP_CENTER" layoutX="150.0" layoutY="32.0" prefWidth="500.0" AnchorPane.topAnchor="32.0">
          <children>
-            <ImageView fitHeight="120.0" fitWidth="450.0" pickOnBounds="true" preserveRatio="true">
+            <ImageView fitHeight="215.0" fitWidth="522.0" pickOnBounds="true" preserveRatio="true">
                <image>
-                  <Image url="@images/title.jpg" />
+                  <Image url="@images/title.png" />
                </image>
             </ImageView>
          </children>
