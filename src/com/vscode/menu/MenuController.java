@@ -32,7 +32,7 @@ public class MenuController {
         // 1. 初始化背景音樂 (MenuMusic.mp3)
         // ==========================================
         try {
-            URL musicResource = getClass().getResource("/resource/fxml/audio/MenuMusic.mp3");
+            URL musicResource = getClass().getResource("/resource/fxml/audio/MenuMusic.wav");
             if (musicResource != null) {
                 Media menuMusic = new Media(musicResource.toExternalForm());
                 menuMediaPlayer = new MediaPlayer(menuMusic);
