@@ -3,6 +3,8 @@ package com.vscode.menu;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.scene.media.AudioClip;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 import java.net.URL;
 
 public class SoundManager {
@@ -12,51 +14,77 @@ public class SoundManager {
     private final DoubleProperty musicVolume = new SimpleDoubleProperty(50.0); // 預設值 50
     private final DoubleProperty soundVolume = new SimpleDoubleProperty(50.0); // 預設值 50
 
-    // ===== 新增：勝利音效物件 =====
+    // ===== 音效與音樂物件 =====
     private AudioClip victorySound;
+    private AudioClip gameOverSound;
+    private MediaPlayer bossMusicPlayer;
 
     private SoundManager() {
-        // 初始化音效
+        // 初始化音效與音樂
         try {
-            // 請確保你的音效檔案放在 src/main/resources/sounds/victory.mp3
-            URL resource = getClass().getResource("/resource/fxml/sounds/victory.mp3");
-            if (resource != null)
-            {
-                victorySound = new AudioClip(resource.toExternalForm());
+            // 載入勝利音效
+            URL victoryRes = getClass().getResource("/resource/fxml/sounds/victory.mp3");
+            if (victoryRes != null) {
+                victorySound = new AudioClip(victoryRes.toExternalForm());
+                victorySound.volumeProperty().bind(soundVolume.divide(100.0));
+            } else {
+                System.err.println("【SoundManager】找不到勝利音效檔案！");
+            }
 
-                // 讓 AudioClip 的音量即時連動你的 soundVolumeProperty
-                // 因為 AudioClip 的音量範圍是 0.0 ~ 1.0，而你們的預設值是 50.0，所以除以 100
-                victorySound.setVolume(soundVolume.get() / 100.0);
-                soundVolume.addListener((obs, oldVal, newVal) -> {
-                    victorySound.setVolume(newVal.doubleValue() / 100.0);
-                });
+            // 載入遊戲結束音效 (death.mp3)
+            URL gameOverRes = getClass().getResource("/resource/fxml/sounds/gameover.mp3");
+            if (gameOverRes != null) {
+                gameOverSound = new AudioClip(gameOverRes.toExternalForm());
+                gameOverSound.volumeProperty().bind(soundVolume.divide(100.0));
+            } else {
+                System.err.println("【SoundManager】找不到遊戲結束音效檔案！");
             }
-            else
-            {
-                System.err.println("【SoundManager】找不到勝利音效檔案！請檢查路徑。");
+
+            // 載入 Boss 戰音樂 (BossBGM.mp3)
+            URL bossMusicRes = getClass().getResource("/resource/fxml/audio/Bossfight.mp3");
+            if (bossMusicRes != null) {
+                Media bossMedia = new Media(bossMusicRes.toExternalForm());
+                bossMusicPlayer = new MediaPlayer(bossMedia);
+                bossMusicPlayer.volumeProperty().bind(musicVolume.divide(100.0));
+                bossMusicPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+            } else {
+                System.err.println("【SoundManager】找不到 Boss 戰音樂檔案！");
             }
-        }
-        catch (Exception e)
-        {
-            System.err.println("【SoundManager】音效載入失敗: " + e.getMessage());
+
+        } catch (Exception e) {
+            System.err.println("【SoundManager】初始化失敗: " + e.getMessage());
         }
     }
 
     public static SoundManager getInstance() {
-        if (instance == null)
-        {
+        if (instance == null) {
             instance = new SoundManager();
         }
         return instance;
     }
 
-    // ===== 新增：播放勝利音效的方法 =====
-    public void playVictory()
-    {
+    // ===== 播放方法 =====
+    public void playVictory() {
         if (victorySound != null) {
-            // 每次播放前確保抓到最新的音量（多一層保險）
-            victorySound.setVolume(getSoundVolume() / 100.0);
             victorySound.play();
+        }
+    }
+
+    public void playGameOverSound() {
+        if (gameOverSound != null) {
+            gameOverSound.play();
+        }
+    }
+
+    public void playBossFightMusic() {
+        if (bossMusicPlayer != null) {
+            bossMusicPlayer.play();
+        }
+    }
+
+    public void stopBossFightMusic() {
+        if (bossMusicPlayer != null) {
+            bossMusicPlayer.stop();
         }
     }
 

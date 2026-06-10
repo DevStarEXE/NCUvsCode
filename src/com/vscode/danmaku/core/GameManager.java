@@ -74,8 +74,9 @@ public class GameManager {
     private List<Double> laserPositions = new ArrayList<>(); // X coords or Angles
     private List<Double> laserSlopes = new ArrayList<>();
     private long laserStartTime = 0;
-    // victory music
+    // sound effect
     private boolean VictoryMusic = false;
+    private boolean GameoverMusic = false;
 
     public GameManager(Canvas gameCanvas) {
         this.gameCanvas = gameCanvas;
@@ -116,6 +117,8 @@ public class GameManager {
         } else {
             System.out.println("未知關卡或是尚未實作: " + selectedLevel);
         }
+        // boss fight music
+        SoundManager.getInstance().playBossFightMusic();
     }
 
     public void start() { gameLoop.start(); }
@@ -124,11 +127,25 @@ public class GameManager {
     private void update(long now) {
         if (isGameOver || isVictory)
         {
-            if (!VictoryMusic)
+            // finish sound effect
+            SoundManager.getInstance().stopBossFightMusic();
+            if (isVictory)
             {
-                VictoryMusic = true;
-                SoundManager.getInstance().playVictory();
-                System.out.println("成功擊敗Boss播放勝利音效");
+                if (!VictoryMusic)
+                {
+                    VictoryMusic = true;
+                    SoundManager.getInstance().playVictory();
+                    System.out.println("成功擊敗Boss播放勝利音效");
+                }
+            }
+            if (isGameOver)
+            {
+                if (!GameoverMusic)
+                {
+                    GameoverMusic = true;
+                    SoundManager.getInstance().playGameOverSound();
+                    System.out.println("遊戲結束，撥放失敗音效");
+                }
             }
             return;
         }
@@ -802,7 +819,8 @@ public class GameManager {
             case ESCAPE -> {
                 if (isGameOver || isVictory) {
                     returnToMenu();
-                } else {
+                } else
+                {
                     showExitConfirmation();
                 }
             }
@@ -822,9 +840,13 @@ public class GameManager {
             alert.getButtonTypes().setAll(okButton, noButton);
 
             Optional<ButtonType> result = alert.showAndWait();
-            if (result.isPresent() && result.get() == okButton) {
+            if (result.isPresent() && result.get() == okButton)
+            {
+                // stop music
+                SoundManager.getInstance().stopBossFightMusic();
                 returnToMenu();
-            } else {
+            } else
+            {
                 start();
             }
         });
