@@ -15,6 +15,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import com.vscode.menu.SoundManager;
+
 import com.vscode.danmaku.core.bosses.ForLoopBoss;
 import com.vscode.danmaku.core.bosses.LinkedWorm.LinkedListBoss;
 import com.vscode.danmaku.core.bosses.RecursionBoss;
@@ -72,6 +74,8 @@ public class GameManager {
     private List<Double> laserPositions = new ArrayList<>(); // X coords or Angles
     private List<Double> laserSlopes = new ArrayList<>();
     private long laserStartTime = 0;
+    // victory music
+    private boolean VictoryMusic = false;
 
     public GameManager(Canvas gameCanvas) {
         this.gameCanvas = gameCanvas;
@@ -118,7 +122,16 @@ public class GameManager {
     public void stop() { gameLoop.stop(); }
 
     private void update(long now) {
-        if (isGameOver || isVictory) return;
+        if (isGameOver || isVictory)
+        {
+            if (!VictoryMusic)
+            {
+                VictoryMusic = true;
+                SoundManager.getInstance().playVictory();
+                System.out.println("成功擊敗Boss播放勝利音效");
+            }
+            return;
+        }
 
         double cw = gameCanvas.getWidth();
         double ch = gameCanvas.getHeight();

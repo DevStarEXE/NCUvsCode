@@ -12,7 +12,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.vscode.menu.SettingController">
+<AnchorPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.vscode.menu.SettingController">
     <children>
         <ImageView fitHeight="600.0" fitWidth="800.0" pickOnBounds="true" preserveRatio="false" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
             <image>
@@ -22,7 +22,7 @@
 
         <VBox alignment="CENTER" fillWidth="false" prefWidth="450.0" spacing="30.0" style="-fx-background-radius: 15;" AnchorPane.bottomAnchor="100.0" AnchorPane.leftAnchor="175.0" AnchorPane.rightAnchor="175.0" AnchorPane.topAnchor="100.0">
             <children>
-                <Label text="遊戲設定" textFill="#222222">
+                <Label text="遊戲設定" textFill="WHITE">
                     <font>
                         <Font name="System Bold" size="28.0" />
                     </font>
@@ -33,7 +33,7 @@
 
                 <HBox alignment="CENTER_LEFT" spacing="20.0">
                     <children>
-                        <Label prefWidth="80.0" text="音樂：">
+                        <Label prefWidth="80.0" text="音樂：" textFill="WHITE">
                             <font>
                                 <Font name="System Bold" size="18.0" />
                             </font>
@@ -44,7 +44,7 @@
 
                 <HBox alignment="CENTER_LEFT" spacing="20.0">
                     <children>
-                        <Label prefWidth="80.0" text="音效：">
+                        <Label prefWidth="80.0" text="音效：" textFill="WHITE">
                             <font>
                                 <Font name="System Bold" size="18.0" />
                             </font>
@@ -55,7 +55,7 @@
 
                 <HBox alignment="CENTER_LEFT" spacing="20.0">
                     <children>
-                        <Label prefWidth="80.0" text="難度：">
+                        <Label prefWidth="80.0" text="難度：" textFill="WHITE">
                             <font>
                                 <Font name="System Bold" size="18.0" />
                             </font>
